@@ -105,16 +105,34 @@ function setupEventListeners() {
     document.getElementById('todayBtn').addEventListener('click', loadToday);
     document.getElementById('randomBtn').addEventListener('click', loadRandomData);
     
-    document.getElementById('dateSelector').addEventListener('change', async (e) => {
-        if (e.target.value) {
+    // Load Data button - explicit loading
+    document.getElementById('loadDataBtn').addEventListener('click', async () => {
+        const selectedDate = document.getElementById('dateSelector').value;
+        if (selectedDate) {
             try {
-                await loadDataByDate(e.target.value);
+                await loadDataByDate(selectedDate);
+                updateSystemStatus(`Loaded data for ${selectedDate}`);
             } catch (error) {
-                console.log(`No data for selected date ${e.target.value}, loading random data instead`);
+                console.log(`No data for selected date ${selectedDate}, loading random data instead`);
+                updateSystemStatus(`No data for ${selectedDate}, loaded random data instead`);
                 await loadRandomData();
             }
+        } else {
+            alert('Please select a date first');
         }
     });
+    
+    // Optional: Auto-load on date change (commented out for explicit user control)
+    // document.getElementById('dateSelector').addEventListener('change', async (e) => {
+    //     if (e.target.value) {
+    //         try {
+    //             await loadDataByDate(e.target.value);
+    //         } catch (error) {
+    //             console.log(`No data for selected date ${e.target.value}, loading random data instead`);
+    //             await loadRandomData();
+    //         }
+    //     }
+    // });
     
     // Chart controls
     document.getElementById('fitBtn').addEventListener('click', () => chartManager.fitContent());
