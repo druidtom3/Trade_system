@@ -87,8 +87,6 @@ class ChartManagerPro {
                 timeVisible: true,
                 secondsVisible: false,
                 barSpacing: 8,
-                rightOffset: 50,  // Leave space on right for drawing into future
-                rightBarStaysOnScroll: false,  // Allow scrolling past the last bar
             },
         };
         
