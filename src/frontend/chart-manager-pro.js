@@ -14,8 +14,8 @@ class ChartManagerPro {
         this.currentFVGs = null;
         this.settings = {
             showFVG: true,
-            showFVGMarkers: true,
-            showClearedFVGs: true,
+            showFVGMarkers: false,
+            showClearedFVGs: false,
             showVolume: false,
             theme: 'dark'
         };
@@ -25,10 +25,22 @@ class ChartManagerPro {
     }
     
     init() {
+        console.log('🔧 Initializing ChartManagerPro for container:', this.containerId);
         const container = document.getElementById(this.containerId);
         if (!container) {
-            console.error(`Container ${this.containerId} not found`);
+            console.error(`❌ Container ${this.containerId} not found`);
             return;
+        }
+        console.log('📦 Container found:', container.offsetWidth, 'x', container.offsetHeight);
+        
+        // Check if container has proper dimensions
+        if (container.offsetWidth === 0 || container.offsetHeight === 0) {
+            console.warn('⚠️  Container has zero dimensions:', {
+                width: container.offsetWidth,
+                height: container.offsetHeight,
+                display: getComputedStyle(container).display,
+                visibility: getComputedStyle(container).visibility
+            });
         }
         
         const chartOptions = {
@@ -75,8 +87,11 @@ class ChartManagerPro {
             },
         };
         
+        console.log('🎨 Creating LightweightChart with options');
         this.chart = LightweightCharts.createChart(container, chartOptions);
+        console.log('✅ Chart created successfully');
         
+        console.log('📈 Adding candlestick series');
         this.candlestickSeries = this.chart.addCandlestickSeries({
             upColor: '#FFFFFF',
             downColor: '#000000',
@@ -87,13 +102,17 @@ class ChartManagerPro {
             borderVisible: true,
             wickVisible: true,
         });
+        console.log('✅ Candlestick series added successfully');
         
+        console.log('🎮 Setting up event handlers');
         this.setupEventHandlers();
+        console.log('🔄 Setting up crosshair sync');
         this.setupCrosshairSync();
         
+        console.log('📱 Adding resize listener');
         window.addEventListener('resize', () => this.handleResize());
         
-        console.log('Professional Chart Manager initialized');
+        console.log('✅ Professional Chart Manager initialized successfully');
     }
     
     setupEventHandlers() {
@@ -117,11 +136,18 @@ class ChartManagerPro {
     
     setupCrosshairSync() {
         this.chart.subscribeCrosshairMove((param) => {
-            if (!param.time) return;
+            if (!param.time) {
+                // Clear cursor info when not over candle
+                this.updateMousePosition(null, null);
+                this.updateCandleInfo(null);
+                return;
+            }
             
             const data = param.seriesData.get(this.candlestickSeries);
             if (data) {
-                this.updateCandleInfo(data);
+                // Update both cursor position and candle info
+                this.updateMousePosition(data.close, param.time);
+                this.updateCandleInfo(data, param.time);
             }
         });
     }
@@ -140,13 +166,27 @@ class ChartManagerPro {
         }
     }
     
-    updateCandleInfo(candle) {
+    updateCandleInfo(candle, time) {
+        const open = document.getElementById('candleOpen');
         const high = document.getElementById('dayHigh');
         const low = document.getElementById('dayLow');
+        const close = document.getElementById('candleClose');
         const range = document.getElementById('priceRange');
         
+        if (!candle) {
+            // Clear all values when no candle
+            if (open) open.textContent = '-';
+            if (high) high.textContent = '-';
+            if (low) low.textContent = '-';
+            if (close) close.textContent = '-';
+            if (range) range.textContent = '-';
+            return;
+        }
+        
+        if (open) open.textContent = candle.open.toFixed(2);
         if (high) high.textContent = candle.high.toFixed(2);
         if (low) low.textContent = candle.low.toFixed(2);
+        if (close) close.textContent = candle.close.toFixed(2);
         if (range) {
             const rangeValue = (candle.high - candle.low).toFixed(2);
             range.textContent = rangeValue;
@@ -164,8 +204,15 @@ class ChartManagerPro {
     }
     
     updateData(data, fvgs) {
+        console.log('🔄 ChartManager.updateData called:', {
+            dataLength: data?.length,
+            fvgsLength: fvgs?.length,
+            candlestickSeries: !!this.candlestickSeries,
+            chart: !!this.chart
+        });
+        
         if (!this.candlestickSeries) {
-            console.error('Chart not initialized');
+            console.error('❌ Chart not initialized - candlestickSeries is null');
             return;
         }
         
@@ -180,22 +227,29 @@ class ChartManagerPro {
             close: candle.close
         }));
         
+        console.log('📊 Setting candlestick data:', chartData.length, 'candles');
         this.candlestickSeries.setData(chartData);
+        console.log('✅ Candlestick data set successfully');
         
         if (this.settings.showFVG && fvgs && fvgs.length > 0) {
+            console.log('🔶 Drawing FVG rectangles:', fvgs.length);
             this.drawFVGRectangles(fvgs);
         }
         
         if (this.settings.showVolume) {
+            console.log('📈 Updating volume');
             this.updateVolume(data);
         }
         
+        console.log('💰 Updating price levels');
         this.updatePriceLevels(data);
+        console.log('📊 Updating statistics');
         this.updateStatistics(data, fvgs);
         
+        console.log('🎯 Fitting chart content');
         this.chart.timeScale().fitContent();
         
-        console.log(`Chart updated: ${data.length} candles, ${fvgs ? fvgs.length : 0} FVGs`);
+        console.log(`✅ Chart updated: ${data.length} candles, ${fvgs ? fvgs.length : 0} FVGs`);
     }
     
     drawFVGRectangles(fvgs) {
@@ -203,20 +257,28 @@ class ChartManagerPro {
         
         if (!fvgs || fvgs.length === 0) return;
         
-        // Show all FVGs but distinguish between valid and cleared
+        // Separate valid and cleared FVGs
         const validFVGs = fvgs.filter(fvg => fvg.status === 'valid');
         const clearedFVGs = fvgs.filter(fvg => fvg.status === 'cleared');
         
-        // Render valid FVGs
-        validFVGs.forEach((fvg, index) => {
-            this.renderSingleFVG(fvg, index, false);
-        });
+        // Render valid FVGs only if Fair Value Gaps is enabled
+        if (this.settings.showFVG) {
+            console.log(`🟢 Showing ${validFVGs.length} valid FVGs (Fair Value Gaps ON)`);
+            validFVGs.forEach((fvg, index) => {
+                this.renderSingleFVG(fvg, index, false);
+            });
+        } else {
+            console.log(`🔴 Hiding valid FVGs (Fair Value Gaps OFF)`);
+        }
         
-        // Render cleared FVGs only if enabled
+        // Render cleared FVGs only if Show Cleared FVGs is enabled
         if (this.settings.showClearedFVGs) {
+            console.log(`🟡 Showing ${clearedFVGs.length} cleared FVGs (Show Cleared FVGs ON)`);
             clearedFVGs.forEach((fvg, index) => {
                 this.renderSingleFVG(fvg, validFVGs.length + index, true);
             });
+        } else {
+            console.log(`🔴 Hiding cleared FVGs (Show Cleared FVGs OFF)`);
         }
         
         // Update markers in batch (only if markers enabled)
@@ -328,8 +390,13 @@ class ChartManagerPro {
             // Store boundary series references for cleanup
             this.fvgPrimitives.push(topLineSeries, bottomLineSeries);
             
-            // Store the marker info for later batch update (only if markers enabled)
-            if (this.settings.showFVGMarkers) {
+            // Store the marker info for later batch update 
+            // (only if markers enabled and this FVG type should be shown)
+            const shouldShowMarker = this.settings.showFVGMarkers && 
+                ((fvg.status === 'valid' && this.settings.showFVG) || 
+                 (fvg.status === 'cleared' && this.settings.showClearedFVGs));
+                 
+            if (shouldShowMarker) {
                 this.fvgMarkers = this.fvgMarkers || [];
                 this.fvgMarkers.push({
                     time: fvg.startTime,
@@ -473,10 +540,9 @@ class ChartManagerPro {
     
     toggleFVG(show) {
         this.settings.showFVG = show;
-        if (show && this.currentFVGs) {
+        if (this.currentFVGs) {
+            // Always redraw to reflect the current state
             this.drawFVGRectangles(this.currentFVGs);
-        } else {
-            this.clearFVGRectangles();
         }
     }
     

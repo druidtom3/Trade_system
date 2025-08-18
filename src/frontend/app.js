@@ -36,22 +36,38 @@ async function initializeApp() {
             });
         }
         
-        showLoading(true, 'Initializing chart...');
-        chartManager.init();
-        
-        // FVGRenderer disabled - using chart-manager-pro.js built-in rendering
-        // if (chartManager.candlestickSeries) {
-        //     fvgRenderer = new FVGRenderer(chartManager.chart, chartManager.candlestickSeries);
-        // }
-        
+        // Load timeframes first
         const timeframes = await dataManager.getTimeframes();
         console.log('Available timeframes:', timeframes);
         
-        await loadRandomData();
-        
+        // Set initialized before loading data to avoid race condition
         isInitialized = true;
+        console.log('🚀 System initialized, loading initial data...');
+        
+        // Load data but don't update chart yet (chart not initialized)
+        console.log('📊 Fetching initial data for timeframe:', currentTimeframe);
+        const initialData = await dataManager.getRandomData(currentTimeframe);
+        console.log('✅ Initial data fetched:', {
+            date: initialData.date,
+            candles: initialData.data?.length,
+            fvgs: initialData.fvgs?.length
+        });
+        
+        // Update UI with initial data
+        updateUI(initialData);
+        currentDate = initialData.date;
+        document.getElementById('dateSelector').value = initialData.date;
+        
+        // Initialize chart AFTER loading overlay is hidden
         showLoading(false);
+        console.log('🎨 Initializing chart after hiding loading overlay...');
+        chartManager.init();
+        
+        // Now update chart with the loaded data
+        console.log('📈 Updating chart with initial data...');
+        chartManager.updateData(initialData.data, initialData.fvgs);
         updateSystemStatus('Ready');
+        console.log('✅ Initial data loaded successfully');
         
     } catch (error) {
         console.error('Initialization failed:', error);
@@ -210,9 +226,17 @@ async function loadRandomData() {
         updateSystemStatus('Loading random data...');
         showLoading(true, 'Loading market data...');
         
+        console.log('📊 Fetching random data for timeframe:', currentTimeframe);
         const data = await dataManager.getRandomData(currentTimeframe);
+        console.log('✅ Data fetched:', {
+            date: data.date,
+            candles: data.data?.length,
+            fvgs: data.fvgs?.length
+        });
         
+        console.log('🔄 Updating UI');
         updateUI(data);
+        console.log('📈 Updating chart manager');
         chartManager.updateData(data.data, data.fvgs);
         
         // FVGRenderer disabled - chart-manager handles FVG rendering
