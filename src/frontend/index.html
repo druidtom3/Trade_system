@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MNQ Trading Chart System - Professional Edition</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Top Header -->
+        <header class="main-header">
+            <div class="header-left">
+                <h1 class="app-title">MNQ Trading Analysis System</h1>
+                <span class="version-badge">FVG Detector V4 | Professional</span>
+            </div>
+            <div class="header-center">
+                <div class="market-info">
+                    <span class="market-label">Market:</span>
+                    <span class="market-value">NASDAQ-100 Micro Futures</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="connection-status" id="connectionStatus">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Connected</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="loading-overlay">
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <h2 class="loading-title">Loading Market Data...</h2>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div id="progressFill" class="progress-fill"></div>
+                    </div>
+                    <div class="progress-info">
+                        <span id="progressPercent" class="progress-percent">0%</span>
+                        <span id="progressMessage" class="progress-message">Initializing...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Layout -->
+        <div class="main-layout">
+            <!-- Left Sidebar -->
+            <aside class="sidebar sidebar-left">
+                <div class="sidebar-section">
+                    <div class="section-header">
+                        <h3>Technical Indicators</h3>
+                        <button class="collapse-btn" data-target="indicators">−</button>
+                    </div>
+                    <div id="indicators" class="section-content">
+                        <div class="indicator-group">
+                            <label class="indicator-toggle">
+                                <input type="checkbox" id="fvgToggle" checked>
+                                <span class="toggle-slider"></span>
+                                <span class="toggle-label">Fair Value Gaps</span>
+                            </label>
+                            <label class="indicator-toggle">
+                                <input type="checkbox" id="fvgMarkersToggle" checked>
+                                <span class="toggle-slider"></span>
+                                <span class="toggle-label">FVG Markers</span>
+                            </label>
+                            <label class="indicator-toggle">
+                                <input type="checkbox" id="clearedFVGToggle" checked>
+                                <span class="toggle-slider"></span>
+                                <span class="toggle-label">Show Cleared FVGs</span>
+                            </label>
+                            <div class="indicator-stats" id="fvgStats">
+                                <div class="stat-row">
+                                    <span class="stat-icon bullish">▲</span>
+                                    <span class="stat-name">Bullish FVG:</span>
+                                    <span id="bullishFVG" class="stat-value">0</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-icon bearish">▼</span>
+                                    <span class="stat-name">Bearish FVG:</span>
+                                    <span id="bearishFVG" class="stat-value">0</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-icon total">◆</span>
+                                    <span class="stat-name">Valid FVG:</span>
+                                    <span id="validFVG" class="stat-value">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="indicator-group">
+                            <label class="indicator-toggle">
+                                <input type="checkbox" id="volumeToggle">
+                                <span class="toggle-slider"></span>
+                                <span class="toggle-label">Volume Profile</span>
+                            </label>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                <div class="sidebar-section">
+                    <div class="section-header">
+                        <h3>Drawing Tools</h3>
+                        <button class="collapse-btn" data-target="tools">−</button>
+                    </div>
+                    <div id="tools" class="section-content">
+                        <div class="tool-grid">
+                            <button class="tool-btn" data-tool="trendline" title="Trend Line">
+                                <svg width="20" height="20"><line x1="2" y1="18" x2="18" y2="2" stroke="currentColor" stroke-width="2"/></svg>
+                            </button>
+                            <button class="tool-btn" data-tool="horizontal" title="Horizontal Line">
+                                <svg width="20" height="20"><line x1="2" y1="10" x2="18" y2="10" stroke="currentColor" stroke-width="2"/></svg>
+                            </button>
+                            <button class="tool-btn" data-tool="rectangle" title="Rectangle">
+                                <svg width="20" height="20"><rect x="2" y="2" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                            </button>
+                            <button class="tool-btn" data-tool="text" title="Text">
+                                <svg width="20" height="20"><text x="10" y="15" text-anchor="middle" font-size="16" fill="currentColor">T</text></svg>
+                            </button>
+                            <button class="tool-btn active" data-tool="cursor" title="Cursor">
+                                <svg width="20" height="20"><path d="M5 2L5 18L12 11L16 18L18 16L11 12L18 5L5 2Z" fill="currentColor"/></svg>
+                            </button>
+                            <button class="tool-btn" data-tool="clear" title="Clear All">
+                                <svg width="20" height="20"><path d="M3 3L17 17M17 3L3 17" stroke="currentColor" stroke-width="2"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="sidebar-section">
+                    <div class="section-header">
+                        <h3>Market Info</h3>
+                        <button class="collapse-btn" data-target="market">−</button>
+                    </div>
+                    <div id="market" class="section-content">
+                        <div class="info-row">
+                            <span class="info-label">Date:</span>
+                            <span id="marketDate" class="info-value">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Session:</span>
+                            <span id="marketSession" class="info-value">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">NY Open (TPE):</span>
+                            <span id="nyOpenTime" class="info-value">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">NY Close (TPE):</span>
+                            <span id="nyCloseTime" class="info-value">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Holiday:</span>
+                            <span id="holidayStatus" class="info-value">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">DST Active:</span>
+                            <span id="dstStatus" class="info-value">-</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Center Content -->
+            <main class="main-content">
+                <!-- Control Bar -->
+                <div class="control-bar">
+                    <div class="control-section">
+                        <div class="timeframe-selector">
+                            <button class="tf-btn" data-tf="M1">1M</button>
+                            <button class="tf-btn" data-tf="M5">5M</button>
+                            <button class="tf-btn active" data-tf="M15">15M</button>
+                            <button class="tf-btn" data-tf="H1">1H</button>
+                            <button class="tf-btn" data-tf="H4">4H</button>
+                            <button class="tf-btn" data-tf="D1">1D</button>
+                        </div>
+                    </div>
+                    
+                    <div class="control-section">
+                        <div class="date-controls">
+                            <button id="prevDayBtn" class="nav-btn" title="Previous Day">◀</button>
+                            <input type="date" id="dateSelector" class="date-input">
+                            <button id="nextDayBtn" class="nav-btn" title="Next Day">▶</button>
+                            <button id="todayBtn" class="action-btn">Today</button>
+                            <button id="randomBtn" class="action-btn accent">Random</button>
+                        </div>
+                    </div>
+                    
+                    <div class="control-section">
+                        <div class="chart-controls">
+                            <button id="fitBtn" class="icon-btn" title="Fit to Screen">⊡</button>
+                            <button id="zoomInBtn" class="icon-btn" title="Zoom In">+</button>
+                            <button id="zoomOutBtn" class="icon-btn" title="Zoom Out">−</button>
+                            <button id="resetBtn" class="icon-btn" title="Reset View">⟲</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chart Container -->
+                <div class="chart-wrapper">
+                    <div id="mainChart" class="chart-container"></div>
+                    <div class="chart-overlay" id="chartOverlay"></div>
+                </div>
+
+                <!-- Bottom Info Bar -->
+                <div class="info-bar">
+                    <div class="info-group">
+                        <span class="info-label">Candles:</span>
+                        <span id="candleCount" class="info-value">0</span>
+                    </div>
+                    <div class="info-group">
+                        <span class="info-label">Range:</span>
+                        <span id="priceRange" class="info-value">-</span>
+                    </div>
+                    <div class="info-group">
+                        <span class="info-label">High:</span>
+                        <span id="dayHigh" class="info-value">-</span>
+                    </div>
+                    <div class="info-group">
+                        <span class="info-label">Low:</span>
+                        <span id="dayLow" class="info-value">-</span>
+                    </div>
+                    <div class="info-group">
+                        <span class="info-label">Volume:</span>
+                        <span id="totalVolume" class="info-value">-</span>
+                    </div>
+                    <div class="info-group">
+                        <span class="info-label">Last Update:</span>
+                        <span id="lastUpdate" class="info-value">-</span>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Right Sidebar -->
+            <aside class="sidebar sidebar-right">
+                <div class="sidebar-section">
+                    <div class="section-header">
+                        <h3>Price Levels</h3>
+                        <button class="collapse-btn" data-target="levels">−</button>
+                    </div>
+                    <div id="levels" class="section-content">
+                        <div class="level-list" id="priceLevels">
+                            <!-- Dynamic price levels will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="sidebar-section">
+                    <div class="section-header">
+                        <h3>FVG Details</h3>
+                        <button class="collapse-btn" data-target="fvgDetails">−</button>
+                    </div>
+                    <div id="fvgDetails" class="section-content">
+                        <div class="fvg-list" id="fvgList">
+                            <!-- Dynamic FVG list will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="sidebar-section">
+                    <div class="section-header">
+                        <h3>Settings</h3>
+                        <button class="collapse-btn" data-target="settings">−</button>
+                    </div>
+                    <div id="settings" class="section-content">
+                        <div class="setting-item">
+                            <label for="candleLimit">Candle Limit:</label>
+                            <input type="number" id="candleLimit" min="50" max="2000" value="400">
+                        </div>
+                        <div class="setting-item">
+                            <label for="theme">Theme:</label>
+                            <select id="theme">
+                                <option value="dark">Dark</option>
+                                <option value="light">Light</option>
+                            </select>
+                        </div>
+                        <button id="saveSettings" class="action-btn full-width">Save Settings</button>
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+        <!-- Status Bar -->
+        <footer class="status-bar">
+            <div class="status-left">
+                <span id="mousePosition" class="status-item">Price: - | Time: -</span>
+            </div>
+            <div class="status-center">
+                <span id="systemStatus" class="status-item">Ready</span>
+            </div>
+            <div class="status-right">
+                <span id="performanceMetrics" class="status-item">FPS: 60 | Memory: -</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="data-manager.js"></script>
+    <script src="chart-manager-pro.js"></script>
+    <script src="fvg-renderer.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

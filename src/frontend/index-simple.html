@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Chart System - MNQ Analysis</title>
+    <link rel="stylesheet" href="style-v2.css">
+    <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>MNQ Trading Chart Analysis</h1>
+            <div class="version-info">FVG Detector V4 | Chart v1.0</div>
+        </header>
+
+        <!-- Loading Progress -->
+        <div id="loadingOverlay" class="loading-overlay">
+            <div class="loading-content">
+                <h2>Loading System Data...</h2>
+                <div class="progress-bar">
+                    <div id="progressFill" class="progress-fill"></div>
+                </div>
+                <div id="progressText" class="progress-text">0%</div>
+                <div id="loadingMessage" class="loading-message">Initializing...</div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left Panel -->
+            <aside class="left-panel">
+                <div class="panel-header">
+                    <h3>Technical Indicators</h3>
+                    <button class="toggle-btn" id="togglePanel">▼</button>
+                </div>
+                <div class="panel-content" id="panelContent">
+                    <div class="indicator-section">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="fvgToggle" checked>
+                            <span>Show FVG</span>
+                        </label>
+                        <div class="fvg-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Bullish:</span>
+                                <span id="bullishCount" class="stat-value">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Bearish:</span>
+                                <span id="bearishCount" class="stat-value">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Chart Area -->
+            <div class="chart-container">
+                <!-- Control Panel -->
+                <div class="control-panel">
+                    <div class="control-group">
+                        <label for="timeframeSelect">Timeframe:</label>
+                        <select id="timeframeSelect" class="control-select">
+                            <option value="M1">M1</option>
+                            <option value="M5">M5</option>
+                            <option value="M15" selected>M15</option>
+                            <option value="H1">H1</option>
+                            <option value="H4">H4</option>
+                            <option value="D1">D1</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label for="dateInput">Date:</label>
+                        <input type="date" id="dateInput" class="control-input">
+                    </div>
+                    
+                    <div class="control-group">
+                        <button id="loadDataBtn" class="btn btn-primary">Load Data</button>
+                        <button id="randomDateBtn" class="btn btn-secondary">Random Date</button>
+                    </div>
+                </div>
+
+                <!-- Chart -->
+                <div id="chart" class="chart"></div>
+
+                <!-- Status Bar -->
+                <div class="status-bar">
+                    <div class="status-item">
+                        <span class="status-label">Date:</span>
+                        <span id="currentDate" class="status-value">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Candles:</span>
+                        <span id="candleCount" class="status-value">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">NY Open (Taipei):</span>
+                        <span id="nyOpenTime" class="status-value">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Market Status:</span>
+                        <span id="marketStatus" class="status-value">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">DST:</span>
+                        <span id="dstStatus" class="status-value">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="data-manager.js"></script>
+    <script src="chart-manager.js"></script>
+    <script src="script-v2.js"></script>
+</body>
+</html>

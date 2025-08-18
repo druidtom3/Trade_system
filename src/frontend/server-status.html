@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MNQ Trading System - Server Status</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .status-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #00d4ff, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+            opacity: 0.8;
+        }
+
+        .status-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .status-indicator.loading {
+            background: #ffa500;
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-indicator.ready {
+            background: #4caf50;
+        }
+
+        .status-indicator.error {
+            background: #f44336;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .progress-container {
+            margin: 30px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #ff6b6b);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+
+        .progress-text {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+
+        .progress-details {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            line-height: 1.4;
+        }
+
+        .status-message {
+            font-size: 1.2rem;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .launch-button {
+            background: linear-gradient(45deg, #00d4ff, #ff6b6b);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .launch-button.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .launch-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .launch-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .error-details {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid rgba(244, 67, 54, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            text-align: left;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="status-container">
+        <div class="logo">MNQ Trading System</div>
+        <div class="subtitle">Professional Trading Chart Platform</div>
+        
+        <div class="status-message">
+            <span class="status-indicator loading" id="statusIndicator"></span>
+            <span id="statusText">Initializing server...</span>
+        </div>
+
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-text" id="progressPercent">0%</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-details" id="progressDetails">
+                Starting up system components...
+            </div>
+        </div>
+
+        <div class="spinner" id="loadingSpinner"></div>
+
+        <button class="launch-button" id="launchButton" onclick="launchApplication()">
+            🚀 Launch Trading Platform
+        </button>
+
+        <div class="error-details" id="errorDetails" style="display: none;">
+            <!-- Error details will be shown here -->
+        </div>
+    </div>
+
+    <script>
+        let checkInterval;
+        let errorCount = 0;
+        const maxErrors = 5;
+
+        function updateStatus(status) {
+            const indicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            const progressContainer = document.getElementById('progressContainer');
+            const launchButton = document.getElementById('launchButton');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const errorDetails = document.getElementById('errorDetails');
+
+            if (status.server_ready) {
+                // Server is ready
+                indicator.className = 'status-indicator ready';
+                statusText.textContent = 'Server Ready!';
+                progressContainer.style.display = 'none';
+                loadingSpinner.style.display = 'none';
+                launchButton.classList.add('show');
+                launchButton.disabled = false;
+                errorDetails.style.display = 'none';
+                
+                // Auto-launch after 2 seconds
+                setTimeout(() => {
+                    launchApplication();
+                }, 2000);
+                
+            } else if (status.is_loading) {
+                // Server is loading
+                indicator.className = 'status-indicator loading';
+                statusText.textContent = 'Loading market data...';
+                progressContainer.style.display = 'block';
+                loadingSpinner.style.display = 'block';
+                launchButton.classList.remove('show');
+                errorDetails.style.display = 'none';
+                
+                updateProgress(status);
+                
+            } else {
+                // Server error or not responding
+                indicator.className = 'status-indicator error';
+                statusText.textContent = 'Server not responding';
+                progressContainer.style.display = 'none';
+                loadingSpinner.style.display = 'none';
+                launchButton.classList.remove('show');
+                
+                if (status.error) {
+                    showError(status.error);
+                }
+            }
+        }
+
+        function updateProgress(status) {
+            const progressFill = document.getElementById('progressFill');
+            const progressPercent = document.getElementById('progressPercent');
+            const progressDetails = document.getElementById('progressDetails');
+
+            const percentage = status.percentage || 0;
+            progressFill.style.width = percentage + '%';
+            progressPercent.textContent = percentage + '%';
+            
+            let details = status.message || 'Loading...';
+            if (status.current_file) {
+                details += `\nCurrent: ${status.current_file}`;
+            }
+            if (status.completed_files !== undefined && status.total_files !== undefined) {
+                details += `\nProgress: ${status.completed_files}/${status.total_files} files`;
+            }
+            progressDetails.textContent = details;
+        }
+
+        function showError(error) {
+            const errorDetails = document.getElementById('errorDetails');
+            errorDetails.innerHTML = `
+                <strong>Error Details:</strong><br>
+                ${error}<br><br>
+                <em>Please check the server logs and try restarting the Flask application.</em>
+            `;
+            errorDetails.style.display = 'block';
+        }
+
+        async function checkServerStatus() {
+            try {
+                const response = await fetch('/api/loading-status');
+                if (response.ok) {
+                    const status = await response.json();
+                    updateStatus(status);
+                    errorCount = 0; // Reset error count on success
+                    
+                    // Stop checking if server is ready
+                    if (status.server_ready && checkInterval) {
+                        clearInterval(checkInterval);
+                    }
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                console.error('Status check failed:', error);
+                errorCount++;
+                
+                if (errorCount >= maxErrors) {
+                    updateStatus({
+                        server_ready: false,
+                        is_loading: false,
+                        error: `Failed to connect to server after ${maxErrors} attempts. Please ensure the Flask backend is running on port 5001.`
+                    });
+                    
+                    if (checkInterval) {
+                        clearInterval(checkInterval);
+                    }
+                }
+            }
+        }
+
+        function launchApplication() {
+            window.location.href = '/';
+        }
+
+        // Start checking server status
+        document.addEventListener('DOMContentLoaded', () => {
+            checkServerStatus(); // Initial check
+            checkInterval = setInterval(checkServerStatus, 1000); // Check every second
+        });
+    </script>
+</body>
+</html>
