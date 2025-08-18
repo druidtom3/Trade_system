@@ -137,3 +137,50 @@ For detailed system requirements and technical specifications, see `SYSTEM_REQUI
 ## License
 
 Proprietary - All rights reserved
+
+---
+
+## 📄 Source Code Files (RAW Links)
+
+### 🐍 Backend Files
+- **[app.py](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/backend/app.py)** - Flask application server
+- **[data_processor.py](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/backend/data_processor.py)** - Data loading and processing
+- **[fvg_detector_v4.py](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/backend/fvg_detector_v4.py)** - Fair Value Gap detection algorithm
+- **[time_utils.py](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/backend/time_utils.py)** - Time zone conversion utilities
+- **[us_holidays.py](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/backend/us_holidays.py)** - US market holidays detection
+- **[candle_continuity_checker.py](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/backend/candle_continuity_checker.py)** - Data continuity validation
+
+### 🌐 Frontend Files
+- **[index.html](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/index.html)** - Main application interface
+- **[app.js](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/app.js)** - Application initialization and control
+- **[chart-manager-pro.js](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/chart-manager-pro.js)** - Professional chart management with FVG rendering
+- **[data-manager.js](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/data-manager.js)** - Frontend data handling
+- **[languages.js](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/languages.js)** - Multi-language support (EN/中文)
+- **[style.css](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/style.css)** - Main application styles
+- **[server-status.html](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/server-status.html)** - Server loading status page
+
+### 🔧 Legacy/Alternative Files
+- **[chart-manager.js](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/chart-manager.js)** - Basic chart manager (legacy)
+- **[fvg-renderer.js](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/fvg-renderer.js)** - Standalone FVG renderer (disabled)
+- **[index-simple.html](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/index-simple.html)** - Simplified interface
+- **[script-v2.js](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/script-v2.js)** - Alternative main script
+- **[style-v2.css](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/style-v2.css)** - Alternative styles
+
+### ⚙️ Configuration Files
+- **[config.py](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/utils/config.py)** - System configuration
+- **[continuity_config.py](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/utils/continuity_config.py)** - Data continuity settings
+- **[requirements.txt](https://raw.githubusercontent.com/druidtom3/Trade_system/master/requirements.txt)** - Python dependencies
+
+### 📚 Documentation
+- **[README.md](https://raw.githubusercontent.com/druidtom3/Trade_system/master/README.md)** - This file
+- **[SYSTEM_REQUIREMENTS.md](https://raw.githubusercontent.com/druidtom3/Trade_system/master/SYSTEM_REQUIREMENTS.md)** - Technical specifications
+- **[FVG_Implementation_Guide.md](https://raw.githubusercontent.com/druidtom3/Trade_system/master/misc/FVG_Implementation_Guide.md)** - FVG implementation details
+
+### 🎯 Key Features Added
+- **Drawing Tools**: Horizontal lines and rectangles with cross-timeframe persistence
+- **Drawings Info Panel**: Detailed analysis of drawn objects (time range, price range, candle count, percentages)
+- **Multi-language Support**: English/中文 with technical term preservation
+- **Advanced FVG Detection**: Corrected logic with adaptive fill visualization
+- **Professional UI**: Clean interface with real-time status monitoring
+
+*All files are available as RAW downloads for direct integration into your development environment.*

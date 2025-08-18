@@ -6,14 +6,15 @@
     <title>MNQ Trading Chart System - Professional Edition</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+    <script src="languages.js"></script>
 </head>
 <body>
     <div class="app-container">
         <!-- Top Header -->
         <header class="main-header">
             <div class="header-left">
-                <h1 class="app-title">MNQ Trading Analysis System</h1>
-                <span class="version-badge">FVG Detector V4 | Professional</span>
+                <h1 class="app-title" data-translate="app_title">MNQ Trading Analysis System</h1>
+                <span class="version-badge" data-translate="version_badge">FVG Detector V4 | Professional</span>
             </div>
             <div class="header-center">
                 <div class="market-info">
@@ -109,7 +110,7 @@
                     </div>
                     <div id="tools" class="section-content">
                         <div class="tool-grid">
-                            <button class="tool-btn" data-tool="trendline" title="Trend Line">
+                            <button class="tool-btn" data-tool="trendline" title="Trend Line (Not Implemented)">
                                 <svg width="20" height="20"><line x1="2" y1="18" x2="18" y2="2" stroke="currentColor" stroke-width="2"/></svg>
                             </button>
                             <button class="tool-btn" data-tool="horizontal" title="Horizontal Line">
@@ -118,7 +119,7 @@
                             <button class="tool-btn" data-tool="rectangle" title="Rectangle">
                                 <svg width="20" height="20"><rect x="2" y="2" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"/></svg>
                             </button>
-                            <button class="tool-btn" data-tool="text" title="Text">
+                            <button class="tool-btn" data-tool="text" title="Text (Not Implemented)">
                                 <svg width="20" height="20"><text x="10" y="15" text-anchor="middle" font-size="16" fill="currentColor">T</text></svg>
                             </button>
                             <button class="tool-btn active" data-tool="cursor" title="Cursor">
@@ -271,6 +272,28 @@
                 
                 <div class="sidebar-section">
                     <div class="section-header">
+                        <h3 data-translate="drawings_info">Drawings Info</h3>
+                        <button class="collapse-btn" data-target="drawingsInfo">−</button>
+                    </div>
+                    <div id="drawingsInfo" class="section-content">
+                        <div class="drawings-stats">
+                            <div class="stat-row">
+                                <span class="stat-label" data-translate="horizontal_lines">Horizontal Lines:</span>
+                                <span id="horizontalLinesCount" class="stat-value">0</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label" data-translate="rectangles">Rectangles:</span>
+                                <span id="rectanglesCount" class="stat-value">0</span>
+                            </div>
+                        </div>
+                        <div class="drawings-list" id="drawingsList">
+                            <div class="no-drawings" id="noDrawings" data-translate="no_drawings">No drawings yet</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="sidebar-section">
+                    <div class="section-header">
                         <h3>Settings</h3>
                         <button class="collapse-btn" data-target="settings">−</button>
                     </div>
@@ -280,10 +303,17 @@
                             <input type="number" id="candleLimit" min="50" max="2000" value="400">
                         </div>
                         <div class="setting-item">
-                            <label for="theme">Theme:</label>
+                            <label for="theme" data-translate="theme">Theme:</label>
                             <select id="theme">
-                                <option value="dark">Dark</option>
-                                <option value="light">Light</option>
+                                <option value="dark" data-translate="dark_theme">Dark</option>
+                                <option value="light" data-translate="light_theme">Light</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <label for="language" data-translate="language">Language:</label>
+                            <select id="language">
+                                <option value="en" data-translate="english">English</option>
+                                <option value="zh" data-translate="chinese">中文</option>
                             </select>
                         </div>
                         <button id="saveSettings" class="action-btn full-width">Save Settings</button>

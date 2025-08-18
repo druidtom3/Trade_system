@@ -742,3 +742,118 @@ input[type="checkbox"]:checked + .toggle-slider::after {
         left: 0;
     }
 }
+
+/* Drawings Info Styles */
+.drawings-stats {
+    margin-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 10px;
+}
+
+.drawings-stats .stat-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    font-size: 12px;
+}
+
+.drawings-stats .stat-label {
+    color: var(--text-secondary);
+}
+
+.drawings-stats .stat-value {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.drawings-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.no-drawings {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 12px;
+    padding: 20px;
+    opacity: 0.7;
+}
+
+.drawing-item {
+    background: var(--bg-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 8px;
+    font-size: 11px;
+    transition: background 0.2s;
+}
+
+.drawing-item:hover {
+    background: var(--bg-primary);
+}
+
+.drawing-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.drawing-type {
+    font-weight: 600;
+    color: var(--primary-color);
+    text-transform: uppercase;
+}
+
+.drawing-id {
+    font-size: 9px;
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+
+.drawing-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--text-secondary);
+}
+
+.drawing-detail-row {
+    display: flex;
+    justify-content: space-between;
+    grid-column: 1 / -1;
+    padding: 2px 0;
+}
+
+.drawing-detail-label {
+    color: var(--text-secondary);
+}
+
+.drawing-detail-value {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.drawing-actions {
+    margin-top: 8px;
+    display: flex;
+    gap: 5px;
+}
+
+.drawing-action-btn {
+    background: var(--bg-primary);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--text-secondary);
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 9px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.drawing-action-btn:hover {
+    background: var(--primary-color);
+    color: white;
+}

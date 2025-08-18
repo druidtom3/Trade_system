@@ -9,6 +9,12 @@ let currentTimeframe = 'M15';
 let currentDate = null;
 let isInitialized = false;
 
+// Global storage for drawings that persist across timeframes
+window.globalDrawings = {
+    horizontalLines: [],  // Array of {price: number, color: string, width: number, id: string}
+    rectangles: []        // Array of {id: string, time1: number, price1: number, time2: number, price2: number, color: string, fillColor: string}
+};
+
 // Application initialization
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Initializing MNQ Trading Chart System...');
@@ -68,6 +74,11 @@ async function initializeApp() {
         chartManager.updateData(initialData.data, initialData.fvgs);
         updateSystemStatus('Ready');
         console.log('✅ Initial data loaded successfully');
+        
+        // Initialize language system
+        if (window.languageManager) {
+            window.languageManager.updateUI();
+        }
         
     } catch (error) {
         console.error('Initialization failed:', error);
@@ -159,6 +170,13 @@ function setupEventListeners() {
     // Theme selector
     document.getElementById('theme').addEventListener('change', (e) => {
         setTheme(e.target.value);
+    });
+    
+    // Language selector
+    document.getElementById('language').addEventListener('change', (e) => {
+        if (window.languageManager) {
+            window.languageManager.setLanguage(e.target.value);
+        }
     });
 }
 
