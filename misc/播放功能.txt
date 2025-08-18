@@ -1,0 +1,131 @@
+以下是把 「多時間框架 K 線回放 + 模擬下單」 納入現有 Trade_system 的完整開發藍圖。全部以你現行檔案結構為基礎，無需重灌；只需新增／擴充幾個檔案與 API。先給「一眼就能開幹」的總覽，再拆細節。
+
+0. 圖解總覽（一句話版本）
+┌──────────┐     WebSocket (SSE)      ┌──────────────────┐
+│ frontend │◀────────────────────────▶│ Flask / replayer │───▶ 內部撮合引擎
+└──────────┘      candle@1s~5s        └──────────────────┘         ↑
+   ▲   ▲   ▲                                                     更新帳戶 / 交易紀錄
+   │   │   └─ 多 TF Chart (M1~H4) 動態刷新
+   │   └───── TradePanel：市價單、倉位、P/L
+   └───────── PlaybackControls：▶︎⏸︎⏩ (1 / 3 / 5 秒)
+
+FVG engine 與 candle stream 同步：每來一根 → diff → add / clear
+
+1. 後端：Flask + 「replay 服務」模組
+檔案	動作	重點
+src/backend/replay_server.py (新增)	依要求日期載入指定 TF 的 全日 M1 dataframe，以 yield 或 WebSocket 方式逐根輸出。	- 支援 speed 參數（1/3/5 秒）
+- 每根封裝 {timestamp, o, h, l, c, v}
+app.py	- 新增 /api/replay/start (PUT) 接受 {date, speed}
+- /api/replay/stop (DELETE)
+- /api/order (POST) 處理市價單	- 建議改用 Flask-SocketIO，省下輪詢
+- order 只需回傳成交價（上根 close）與即時計算損益
+order_engine.py (新增)	極簡撮合：
+- 支援單帳戶、多倉位
+- 市價單直接以最新 close 成交	- 欄位：side, qty, entry_px, exit_px, pnl
+
+串流範例 (SSE)
+
+@app.route('/api/replay/stream')
+def stream():
+    def event_stream():
+        for candle in replay_generator():
+            yield f"data:{json.dumps(candle)}\n\n"
+            time.sleep(speed)            # 1/3/5
+    return Response(event_stream(), mimetype="text/event-stream")
+
+2. 前端：新增三大元件
+2.1 PlaybackControls.vue / .js
+
+UI：▶︎ ⏸︎ ⏩ 選單 (1 s·3 s·5 s)，日期選擇器。
+
+邏輯：
+
+startReplay(date, speed) → fetch('/api/replay/start')
+
+透過 EventSource('/api/replay/stream') 接收逐根 candle。
+
+stopReplay() 切斷 stream。
+
+2.2 ChartSyncManager.js
+
+內部維護 currentIndex。每收到一根 M1：
+
+tfList.forEach(tf => {
+    series[tf].update(nextBar[tf]);   // M1 直接塞，M5/H1 用緩衝
+});
+fvgManager.update(nextBar.M1);        // 判斷新增/清除
+
+
+對 H4/D1：可選擇「收完一根才更新」或「局部 patch」。
+
+2.3 TradePanel.vue / .js
+
+顯示 balance, equity, openPositions[], closed[]
+
+下單按鈕（多／空），數量輸入。
+
+收到 /api/order 回傳後立即顯示持倉；每根 candle 更新浮損益 (mark-to-market)。
+
+3. FVG 動態刷新策略
+
+增量檢測 – 只對「最新三根」做 L/C/R 判斷。
+
+清除邏輯 – 新一根 close 進入 gap 區間 → 標記 cleared → 從圖上移除。
+
+再次生成 – 當 wick 重新製造缺口時（同樣 L/C/R 成立）→ 以新 idx 重新繪製。
+
+實作
+
+fvg_detector_v4.py 中加入 detect_incremental(previous_state, new_candle) 回傳 {add: [], clear: []}
+
+前端 fvgManager 根據 diff 呼叫 addSeries()/removeSeries()。
+
+4. 多時間框架同步方案
+TF	來源	更新頻率
+M1	stream 直接推	每 1 根
+M5	累積 5 根後合併	if (idx % 5 === 0)
+H1	同理 60 根	-
+H4 / D1	可以只在收盤 patch，否則螢幕閃爍	
+
+Tip：配置 series.applyOptions({lastValueVisible:false}) 防止更新中值飄來飄去。
+
+5. 最小可行里程碑（建議分三週、每週一里程碑）
+週	交付物	成功標準
+W1	後端 SSE/SocketIO replay + 單張 M1 圖表	按鍵可播放 / 暫停 / 改速度
+W2	多 TF 同步 + 動態 FVG 刷新	切頁籤可見即時更新，FVG 被填就消失
+W3	TradePanel + 市價單撮合	下單→浮損益隨 candle 跳動、平倉自動計 P/L
+6. 可能踩雷＆提前補洞
+
+Flask-SocketIO 與 Gunicorn：部署時記得用 eventlet 或 gevent.
+
+FVG 清除後「殘影」：記得先 removeSeries() 再 chart.timeScale().fitContent()，否則舊資料點殘留。
+
+大量 series 繪製：一日 M1 ~ 390 根 * 多線→建議用 Canvas overlay 或 LightweightCharts Primitives，減少對 DOM-LineSeries 的依賴。
+
+日跨區 (RTH→ETH)：回放跨 16:15 CME close 時，最好 split 成兩段 stream 避免「夜盤閃跳」。
+
+7. 程式碼注入範例（超精簡版）
+// frontend/playback-controls.js
+export default class PlaybackControls {
+  constructor(api, chartSync) {
+    this.api = api;
+    this.chartSync = chartSync;
+    this.es = null;
+  }
+  start(date, speed) {
+    fetch('/api/replay/start', {method:'PUT',body:JSON.stringify({date,speed})});
+    this.es = new EventSource('/api/replay/stream');
+    this.es.onmessage = (e) => {
+      const candle = JSON.parse(e.data);
+      this.chartSync.push(candle);      // 喂給 ChartSyncManager
+    };
+  }
+  stop() {
+    this.es?.close();
+    fetch('/api/replay/stop', {method:'DELETE'});
+  }
+}
+
+8. 結語
+
+開發重點：別一次寫到底，先打通「後端流 → 前端單圖 → 多圖 → FVG → 交易」五層流水線。

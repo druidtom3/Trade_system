@@ -2,7 +2,7 @@
 Flask application for trading chart system
 """
 
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, Response
 from flask_cors import CORS
 import sys
 from pathlib import Path
@@ -17,6 +17,7 @@ from fvg_detector_v4 import FVGDetectorV4
 from time_utils import TimeZoneConverter
 from us_holidays import USMarketHolidays
 from candle_continuity_checker import CandleContinuityChecker
+from replay_server import ReplayServer
 from utils.config import FLASK_CONFIG, TIMEFRAMES
 
 logging.basicConfig(level=logging.INFO)
@@ -30,6 +31,7 @@ fvg_detector = FVGDetectorV4()
 tz_converter = TimeZoneConverter()
 holiday_checker = USMarketHolidays()
 continuity_checker = CandleContinuityChecker()
+replay_server = ReplayServer(data_processor)
 
 is_loading = False
 loading_progress = {
@@ -229,6 +231,123 @@ def debug_fvg_analysis():
             results[timeframe] = {'error': str(e)}
     
     return jsonify(results)
+
+# ============= REPLAY API ENDPOINTS =============
+
+@app.route('/api/replay/start', methods=['PUT'])
+def start_replay():
+    """Start K-line replay for specific date"""
+    try:
+        data = request.get_json()
+        date = data.get('date')
+        speed = float(data.get('speed', 1.0))
+        
+        if not date:
+            return jsonify({'error': 'Date is required'}), 400
+            
+        if speed not in [1.0, 3.0, 5.0]:
+            return jsonify({'error': 'Speed must be 1, 3, or 5 seconds'}), 400
+            
+        result = replay_server.start_replay(date, speed)
+        
+        if result['status'] == 'error':
+            return jsonify(result), 400
+        else:
+            return jsonify(result)
+            
+    except Exception as e:
+        logger.error(f"Error starting replay: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/replay/play', methods=['POST'])
+def play_replay():
+    """Start/resume playback"""
+    try:
+        result = replay_server.play_replay()
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error playing replay: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/replay/pause', methods=['POST'])
+def pause_replay():
+    """Pause playback"""
+    try:
+        result = replay_server.pause_replay()
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error pausing replay: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/replay/stop', methods=['DELETE'])
+def stop_replay():
+    """Stop and reset playback"""
+    try:
+        result = replay_server.stop_replay()
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error stopping replay: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/replay/speed', methods=['PUT'])
+def set_replay_speed():
+    """Change playback speed"""
+    try:
+        data = request.get_json()
+        speed = float(data.get('speed', 1.0))
+        
+        if speed not in [1.0, 3.0, 5.0]:
+            return jsonify({'error': 'Speed must be 1, 3, or 5 seconds'}), 400
+            
+        result = replay_server.set_speed(speed)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error setting replay speed: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/replay/status', methods=['GET'])
+def get_replay_status():
+    """Get current replay status"""
+    try:
+        status = replay_server.get_status()
+        return jsonify(status)
+    except Exception as e:
+        logger.error(f"Error getting replay status: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/replay/seek', methods=['PUT'])
+def seek_replay():
+    """Seek to specific candle index"""
+    try:
+        data = request.get_json()
+        index = int(data.get('index', 0))
+        
+        result = replay_server.seek_to_index(index)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error seeking replay: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/replay/stream')
+def replay_stream():
+    """Server-Sent Events stream for real-time candle data"""
+    try:
+        def add_cors_headers():
+            response = Response(
+                replay_server.candle_stream_generator(),
+                mimetype='text/event-stream'
+            )
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+            response.headers.add('Cache-Control', 'no-cache')
+            response.headers.add('Connection', 'keep-alive')
+            return response
+            
+        return add_cors_headers()
+        
+    except Exception as e:
+        logger.error(f"Error in replay stream: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/<path:filename>')
 def serve_static_files(filename):

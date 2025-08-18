@@ -5,9 +5,11 @@
 let dataManager;
 let chartManager;
 let fvgRenderer;
+let playbackControls;
 let currentTimeframe = 'M15';
 let currentDate = null;
 let isInitialized = false;
+let isReplayMode = false;
 
 // Global storage for drawings that persist across timeframes
 window.globalDrawings = {
@@ -21,9 +23,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     dataManager = new DataManager();
     chartManager = new ChartManagerPro('mainChart');
+    playbackControls = new PlaybackControls();
     
     await initializeApp();
     setupEventListeners();
+    setupPlaybackEventListeners();
     setupKeyboardShortcuts();
     startPerformanceMonitoring();
 });
@@ -482,6 +486,190 @@ function startPerformanceMonitoring() {
     }
     
     requestAnimationFrame(updateMetrics);
+}
+
+// ============= PLAYBACK CONTROLS =============
+
+function setupPlaybackEventListeners() {
+    // Play button
+    document.getElementById('playBtn').addEventListener('click', async () => {
+        try {
+            if (!playbackControls.isPrepared) {
+                // Need to prepare first - use current date from dateSelector
+                const selectedDate = document.getElementById('dateSelector').value;
+                if (!selectedDate) {
+                    alert('Please select a date first');
+                    return;
+                }
+                
+                const speed = parseFloat(document.getElementById('speedSelector').value);
+                await playbackControls.prepareReplay(selectedDate, speed);
+            }
+            
+            await playbackControls.startPlayback();
+            updatePlaybackUI();
+            
+        } catch (error) {
+            console.error('Failed to start playback:', error);
+            alert('Failed to start playback: ' + error.message);
+        }
+    });
+    
+    // Pause button
+    document.getElementById('pauseBtn').addEventListener('click', async () => {
+        try {
+            await playbackControls.pausePlayback();
+            updatePlaybackUI();
+        } catch (error) {
+            console.error('Failed to pause playback:', error);
+        }
+    });
+    
+    // Stop button
+    document.getElementById('stopBtn').addEventListener('click', async () => {
+        try {
+            await playbackControls.stopReplay();
+            updatePlaybackUI();
+            isReplayMode = false;
+            
+            // Switch back to M1 for normal view
+            if (currentTimeframe !== 'M1') {
+                await setTimeframe('M1');
+            }
+            
+        } catch (error) {
+            console.error('Failed to stop replay:', error);
+        }
+    });
+    
+    // Speed selector
+    document.getElementById('speedSelector').addEventListener('change', async (e) => {
+        try {
+            const speed = parseFloat(e.target.value);
+            if (playbackControls.isPrepared) {
+                await playbackControls.changeSpeed(speed);
+            }
+        } catch (error) {
+            console.error('Failed to change speed:', error);
+        }
+    });
+    
+    // Setup playback callbacks
+    playbackControls.onCandleReceived = (candleData) => {
+        handleReplayCandle(candleData);
+    };
+    
+    playbackControls.onStatusChanged = (status) => {
+        handleReplayStatusChange(status);
+    };
+}
+
+function handleReplayCandle(candleData) {
+    if (!chartManager || !isReplayMode) return;
+    
+    try {
+        // Create chart-compatible candle data
+        const chartCandle = {
+            time: candleData.time,
+            open: candleData.open,
+            high: candleData.high,
+            low: candleData.low,
+            close: candleData.close,
+            volume: candleData.volume
+        };
+        
+        // Update the chart with new candle (for M1 only in Week 1)
+        // In future weeks, we'll add multi-timeframe sync
+        if (currentTimeframe === 'M1') {
+            // For now, we'll replace the entire chart data
+            // In a real implementation, we'd append to existing data
+            console.log('📊 Updating chart with replay candle:', chartCandle);
+            // TODO: Implement incremental candle update
+        }
+        
+    } catch (error) {
+        console.error('Error handling replay candle:', error);
+    }
+}
+
+function handleReplayStatusChange(status) {
+    console.log('📡 Replay status change:', status);
+    
+    switch (status.type) {
+        case 'prepared':
+            isReplayMode = true;
+            // Switch to M1 timeframe for replay
+            if (currentTimeframe !== 'M1') {
+                setTimeframe('M1');
+            }
+            updatePlaybackUI();
+            break;
+            
+        case 'playing':
+            updatePlaybackUI();
+            break;
+            
+        case 'paused':
+            updatePlaybackUI();
+            break;
+            
+        case 'stopped':
+            isReplayMode = false;
+            updatePlaybackUI();
+            break;
+            
+        case 'finished':
+            isReplayMode = false;
+            updatePlaybackUI();
+            alert('Replay finished!');
+            break;
+            
+        case 'progress':
+            updateReplayProgress(status.currentIndex, status.totalCandles, status.progress);
+            break;
+            
+        case 'error':
+            console.error('Replay error:', status.error);
+            alert('Replay error: ' + status.error);
+            break;
+    }
+}
+
+function updatePlaybackUI() {
+    const playBtn = document.getElementById('playBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const speedSelector = document.getElementById('speedSelector');
+    
+    if (playbackControls.isPlaying) {
+        playBtn.style.display = 'none';
+        pauseBtn.style.display = 'flex';
+        stopBtn.disabled = false;
+        speedSelector.disabled = false;
+    } else if (playbackControls.isPrepared) {
+        playBtn.style.display = 'flex';
+        pauseBtn.style.display = 'none';
+        stopBtn.disabled = false;
+        speedSelector.disabled = false;
+    } else {
+        playBtn.style.display = 'flex';
+        pauseBtn.style.display = 'none';
+        stopBtn.disabled = true;
+        speedSelector.disabled = true;
+    }
+}
+
+function updateReplayProgress(currentIndex, totalCandles, progressPercent) {
+    const progressText = document.getElementById('replayProgress');
+    const progressBar = document.getElementById('replayProgressBar');
+    
+    if (progressText) {
+        progressText.textContent = `${currentIndex}/${totalCandles}`;
+    }
+    
+    if (progressBar) {
+        progressBar.style.width = `${progressPercent || 0}%`;
+    }
 }
 
 // Load settings on startup

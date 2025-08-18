@@ -193,6 +193,25 @@
                     </div>
                     
                     <div class="control-section">
+                        <div class="playback-controls">
+                            <button id="playBtn" class="playback-btn play" title="Play Replay">▶</button>
+                            <button id="pauseBtn" class="playback-btn pause" title="Pause Replay" style="display:none">⏸</button>
+                            <button id="stopBtn" class="playback-btn stop" title="Stop Replay">⏹</button>
+                            <select id="speedSelector" class="speed-selector">
+                                <option value="1">1x</option>
+                                <option value="3">3x</option>
+                                <option value="5">5x</option>
+                            </select>
+                            <div class="replay-progress">
+                                <span id="replayProgress" class="progress-text">0/0</span>
+                                <div class="progress-bar-mini">
+                                    <div id="replayProgressBar" class="progress-fill-mini"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="control-section">
                         <div class="chart-controls">
                             <button id="fitBtn" class="icon-btn" title="Fit to Screen">⊡</button>
                             <button id="zoomInBtn" class="icon-btn" title="Zoom In">+</button>
@@ -329,6 +348,7 @@
     <script src="data-manager.js"></script>
     <script src="chart-manager-pro.js"></script>
     <script src="fvg-renderer.js"></script>
+    <script src="playback-controls.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
