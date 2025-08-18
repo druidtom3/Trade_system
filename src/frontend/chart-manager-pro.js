@@ -252,8 +252,21 @@ class ChartManagerPro {
         console.log('📊 Updating statistics');
         this.updateStatistics(data, fvgs);
         
-        console.log('🎯 Fitting chart content');
-        this.chart.timeScale().fitContent();
+        console.log('🎯 Setting up future drawing area');
+        // Enable drawing beyond last candle - based on verified documentation
+        const barsOfPadding = 25;
+        this.chart.timeScale().applyOptions({
+            rightOffset: barsOfPadding,
+            rightBarStaysOnScroll: true,
+        });
+        
+        // Set visible logical range to include future area
+        this.chart.timeScale().setVisibleLogicalRange({
+            from: -barsOfPadding, 
+            to: data.length + barsOfPadding
+        });
+        
+        console.log(`✅ Future drawing area enabled: ${barsOfPadding} bars padding`);
         
         // Restore global drawings after updating data
         this.restoreGlobalDrawings();
