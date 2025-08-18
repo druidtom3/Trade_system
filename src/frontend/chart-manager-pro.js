@@ -587,9 +587,45 @@ class ChartManagerPro {
         
         // Get price and time at click position
         const price = this.candlestickSeries.coordinateToPrice(param.point.y);
-        const time = this.chart.timeScale().coordinateToTime(param.point.x);
+        let time = this.chart.timeScale().coordinateToTime(param.point.x);
         
-        if (price === null || time === null) return;
+        // Handle clicks in future area where coordinateToTime returns null
+        if (time === null && param.point.x > 0) {
+            console.log('🎯 Click in future area detected, calculating logical time');
+            
+            // Use logical coordinate conversion for future area
+            const logical = this.chart.timeScale().coordinateToLogical(param.point.x);
+            console.log('📍 Logical position:', logical);
+            
+            if (logical !== null && this.currentData && this.currentData.length > 0) {
+                // Calculate future time based on logical position
+                const lastDataIndex = this.currentData.length - 1;
+                const lastTime = this.currentData[lastDataIndex].time;
+                
+                // Estimate future time (assuming uniform time intervals)
+                if (lastDataIndex > 0) {
+                    const timeInterval = this.currentData[lastDataIndex].time - this.currentData[lastDataIndex - 1].time;
+                    const futureOffset = Math.max(0, logical - lastDataIndex);
+                    time = lastTime + Math.round(futureOffset * timeInterval);
+                    console.log('⏰ Calculated future time:', time, 'offset:', futureOffset);
+                } else {
+                    time = lastTime + 300; // Default 5-minute offset
+                }
+            }
+        }
+        
+        // Require valid price, but allow calculated future time
+        if (price === null) {
+            console.log('❌ Invalid price, click ignored');
+            return;
+        }
+        
+        if (time === null) {
+            console.log('❌ Could not determine time, click ignored');
+            return;
+        }
+        
+        console.log('✅ Valid click detected:', { price: price.toFixed(2), time, logical: this.chart.timeScale().coordinateToLogical(param.point.x) });
         
         switch (this.selectedTool) {
             case 'horizontal':
