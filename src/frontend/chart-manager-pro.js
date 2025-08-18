@@ -507,13 +507,17 @@ class ChartManagerPro {
         document.getElementById('candleCount').textContent = data.length;
         
         if (fvgs) {
-            const bullishCount = fvgs.filter(f => f.type === 'bullish').length;
-            const bearishCount = fvgs.filter(f => f.type === 'bearish').length;
-            const validCount = fvgs.filter(f => f.status === 'valid').length;
+            // Calculate statistics
+            const bullishAll = fvgs.filter(f => f.type === 'bullish');
+            const bearishAll = fvgs.filter(f => f.type === 'bearish');
+            const bullishValid = bullishAll.filter(f => f.status === 'valid');
+            const bearishValid = bearishAll.filter(f => f.status === 'valid');
+            const totalValid = fvgs.filter(f => f.status === 'valid').length;
             
-            document.getElementById('bullishFVG').textContent = bullishCount;
-            document.getElementById('bearishFVG').textContent = bearishCount;
-            document.getElementById('validFVG').textContent = validCount;
+            // Update display with Valid/Total format
+            document.getElementById('bullishFVG').textContent = `${bullishValid.length} / ${bullishAll.length}`;
+            document.getElementById('bearishFVG').textContent = `${bearishValid.length} / ${bearishAll.length}`;
+            document.getElementById('validFVG').textContent = totalValid;
         }
     }
     
