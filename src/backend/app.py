@@ -65,6 +65,8 @@ def load_data_async():
         logger.info("All data loaded successfully")
     except Exception as e:
         logger.error(f"Error loading data: {str(e)}")
+        loading_progress['percentage'] = 100
+        loading_progress['message'] = f'Warning: {str(e)} - System running without data'
         loading_progress['message'] = f'Error: {str(e)}'
     finally:
         is_loading = False
@@ -116,7 +118,8 @@ def loading_status():
         'current_file': loading_progress['current_file'],
         'completed_files': loading_progress['completed_files'],
         'total_files': loading_progress['total_files'],
-        'server_ready': not is_loading and len(data_processor.loaded_data) > 0
+        'server_ready': not is_loading and len(data_processor.loaded_data) > 0,
+        'data_loaded': len(data_processor.loaded_data) > 0
     })
     
     return jsonify(status)

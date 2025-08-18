@@ -104,10 +104,22 @@ function setupEventListeners() {
     });
     
     // Date navigation
-    document.getElementById('prevDayBtn').addEventListener('click', () => navigateDate(-1));
-    document.getElementById('nextDayBtn').addEventListener('click', () => navigateDate(1));
-    document.getElementById('todayBtn').addEventListener('click', loadToday);
-    document.getElementById('randomBtn').addEventListener('click', loadRandomData);
+    document.getElementById('prevDayBtn').addEventListener('click', async () => {
+        await navigateDate(-1);
+        updateDateSelectorFromCurrentDate();
+    });
+    document.getElementById('nextDayBtn').addEventListener('click', async () => {
+        await navigateDate(1);
+        updateDateSelectorFromCurrentDate();
+    });
+    document.getElementById('todayBtn').addEventListener('click', async () => {
+        await loadToday();
+        updateDateSelectorFromCurrentDate();
+    });
+    document.getElementById('randomBtn').addEventListener('click', async () => {
+        await loadRandomData();
+        updateDateSelectorFromCurrentDate();
+    });
     
     // Load Data button - explicit loading
     document.getElementById('loadDataBtn').addEventListener('click', async () => {
@@ -488,6 +500,14 @@ function startPerformanceMonitoring() {
     requestAnimationFrame(updateMetrics);
 }
 
+// ============= UTILITY FUNCTIONS =============
+
+function updateDateSelectorFromCurrentDate() {
+    if (currentDate) {
+        document.getElementById('dateSelector').value = currentDate;
+    }
+}
+
 // ============= PLAYBACK CONTROLS =============
 
 function setupPlaybackEventListeners() {
@@ -496,10 +516,19 @@ function setupPlaybackEventListeners() {
         try {
             if (!playbackControls.isPrepared) {
                 // Need to prepare first - use current date from dateSelector
-                const selectedDate = document.getElementById('dateSelector').value;
+                let selectedDate = document.getElementById('dateSelector').value;
                 if (!selectedDate) {
-                    alert('Please select a date first');
-                    return;
+                    // If no date selected, use current date from loaded data or a random date
+                    if (currentDate) {
+                        selectedDate = currentDate;
+                    } else {
+                        // Load random data to get a date
+                        await loadRandomData();
+                        selectedDate = currentDate;
+                    }
+                    
+                    // Update the date selector
+                    updateDateSelectorFromCurrentDate();
                 }
                 
                 const speed = parseFloat(document.getElementById('speedSelector').value);
