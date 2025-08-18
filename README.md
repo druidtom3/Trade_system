@@ -1,15 +1,48 @@
-# Trading Chart System - MNQ Analysis
+# MNQ Trading Chart System - Professional Edition
+
+Advanced Fair Value Gap (FVG) detection and visualization system for NASDAQ-100 Micro Futures (MNQ) trading analysis.
+
+## 📁 Data Files Required
+
+**⚠️ Important**: This repository contains only source code. You need to provide your own market data files.
+
+Create a `data/` folder in the project root and add the following CSV files:
+- `MNQ_M1_2019-2024.csv` - 1-minute timeframe data
+- `MNQ_M5_2019-2024.csv` - 5-minute timeframe data  
+- `MNQ_M15_2019-2024.csv` - 15-minute timeframe data
+- `MNQ_H1_2019-2024.csv` - 1-hour timeframe data
+- `MNQ_H4_2019-2024.csv` - 4-hour timeframe data
+- `MNQ_D1_2019-2024.csv` - Daily timeframe data
+
+### Expected CSV Format:
+```
+Date,Time,Open,High,Low,Close,Volume,Tick Count
+2024-01-01,09:30:00,15000.00,15010.00,14990.00,15005.00,1000,150
+```
+*The system will automatically process these files and create necessary timestamp columns.*
 
 ## Overview
-A web-based trading chart analysis system for MNQ (Micro E-mini Nasdaq-100) futures, featuring Fair Value Gap (FVG) detection and visualization.
+A web-based trading chart analysis system for MNQ (Micro E-mini Nasdaq-100) futures, featuring advanced Fair Value Gap (FVG) detection and visualization.
 
-## Features
-- Multi-timeframe support (M1, M5, M15, H1, H4, D1)
-- FVG Detector V4 with vectorized operations
-- Time zone conversion (UTC → EST/EDT → Taipei)
-- US market holidays detection
-- Performance-optimized data processing
-- Real-time loading progress tracking
+## ✨ Key Features
+
+### FVG Detection & Visualization
+- **Advanced FVG Detector V4** with corrected detection logic (C.Close comparison)
+- **Semi-transparent fill effect** with adaptive density (4-130 lines based on gap size)
+- **Time-limited display** (40 candles) with clean boundary lines (0.5 width)
+- **Independent controls** for FVG boundaries, markers (F1, F2...), and cleared FVGs
+
+### Professional Trading Interface
+- **Multi-timeframe support** (M1, M5, M15, H1, H4, D1) with 400 candles display
+- **Lightweight Charts v5** integration with custom styling
+- **Real-time server status** page with loading progress
+- **Clean white background** without grid lines for optimal viewing
+
+### Data Processing
+- **Time zone conversion** (UTC → EST/EDT → Taipei)
+- **US market holidays** detection and handling
+- **Performance-optimized** data processing with vectorized operations
+- **Smart data management** with proper memory cleanup
 
 ## Installation
 
@@ -35,8 +68,9 @@ python src/backend/app.py
 
 2. Open your browser and navigate to:
 ```
-http://127.0.0.1:5001/simple
+http://localhost:5001
 ```
+*The system will automatically show a status page while loading, then redirect to the main interface.*
 
 ## Usage
 
