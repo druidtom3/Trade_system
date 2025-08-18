@@ -249,8 +249,6 @@ class ChartManagerPro {
             this.updateVolume(data);
         }
         
-        console.log('💰 Updating price levels');
-        this.updatePriceLevels(data);
         console.log('📊 Updating statistics');
         this.updateStatistics(data, fvgs);
         
@@ -498,36 +496,6 @@ class ChartManagerPro {
         }));
         
         this.volumeSeries.setData(volumeData);
-    }
-    
-    updatePriceLevels(data) {
-        const levelsContainer = document.getElementById('priceLevels');
-        if (!levelsContainer) return;
-        
-        const prices = data.map(d => [d.high, d.low]).flat();
-        const maxPrice = Math.max(...prices);
-        const minPrice = Math.min(...prices);
-        const range = maxPrice - minPrice;
-        
-        const levels = [];
-        for (let i = 0; i <= 4; i++) {
-            const price = minPrice + (range * i / 4);
-            levels.push({
-                price: price.toFixed(2),
-                type: i === 0 ? 'Support' : i === 4 ? 'Resistance' : 'Level'
-            });
-        }
-        
-        levelsContainer.innerHTML = '';
-        levels.forEach(level => {
-            const item = document.createElement('div');
-            item.className = 'level-item';
-            item.innerHTML = `
-                <span class="level-price">${level.price}</span>
-                <span class="level-type">${level.type}</span>
-            `;
-            levelsContainer.appendChild(item);
-        });
     }
     
     updateStatistics(data, fvgs) {
