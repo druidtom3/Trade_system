@@ -143,38 +143,81 @@ Proprietary - All rights reserved
 ## 📄 Source Code Files (RAW Links)
 
 ### 🐍 Backend Files
-- **[app.py](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/backend/app.py)** - Flask application server
-- **[data_processor.py](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/backend/data_processor.py)** - Data loading and processing
-- **[fvg_detector_v4.py](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/backend/fvg_detector_v4.py)** - Fair Value Gap detection algorithm
-- **[time_utils.py](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/backend/time_utils.py)** - Time zone conversion utilities
-- **[us_holidays.py](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/backend/us_holidays.py)** - US market holidays detection
-- **[candle_continuity_checker.py](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/backend/candle_continuity_checker.py)** - Data continuity validation
+- **app.py** - Flask application server
+  https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/backend/app.py
+
+- **data_processor.py** - Data loading and processing
+  https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/backend/data_processor.py
+
+- **fvg_detector_v4.py** - Fair Value Gap detection algorithm
+  https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/backend/fvg_detector_v4.py
+
+- **time_utils.py** - Time zone conversion utilities
+  https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/backend/time_utils.py
+
+- **us_holidays.py** - US market holidays detection
+  https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/backend/us_holidays.py
+
+- **candle_continuity_checker.py** - Data continuity validation
+  https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/backend/candle_continuity_checker.py
 
 ### 🌐 Frontend Files
-- **[index.html](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/index.html)** - Main application interface
-- **[app.js](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/app.js)** - Application initialization and control
-- **[chart-manager-pro.js](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/chart-manager-pro.js)** - Professional chart management with FVG rendering
-- **[data-manager.js](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/data-manager.js)** - Frontend data handling
-- **[languages.js](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/languages.js)** - Multi-language support (EN/中文)
-- **[style.css](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/style.css)** - Main application styles
-- **[server-status.html](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/server-status.html)** - Server loading status page
+- **index.html** - Main application interface
+  https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/index.html
+
+- **app.js** - Application initialization and control
+  https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/app.js
+
+- **chart-manager-pro.js** - Professional chart management with FVG rendering
+  https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/chart-manager-pro.js
+
+- **data-manager.js** - Frontend data handling
+  https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/data-manager.js
+
+- **languages.js** - Multi-language support (EN/中文)
+  https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/languages.js
+
+- **style.css** - Main application styles
+  https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/style.css
+
+- **server-status.html** - Server loading status page
+  https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/server-status.html
 
 ### 🔧 Legacy/Alternative Files
-- **[chart-manager.js](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/chart-manager.js)** - Basic chart manager (legacy)
-- **[fvg-renderer.js](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/fvg-renderer.js)** - Standalone FVG renderer (disabled)
-- **[index-simple.html](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/index-simple.html)** - Simplified interface
-- **[script-v2.js](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/script-v2.js)** - Alternative main script
-- **[style-v2.css](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/style-v2.css)** - Alternative styles
+- **chart-manager.js** - Basic chart manager (legacy)
+  https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/chart-manager.js
+
+- **fvg-renderer.js** - Standalone FVG renderer (disabled)
+  https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/fvg-renderer.js
+
+- **index-simple.html** - Simplified interface
+  https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/index-simple.html
+
+- **script-v2.js** - Alternative main script
+  https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/script-v2.js
+
+- **style-v2.css** - Alternative styles
+  https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/style-v2.css
 
 ### ⚙️ Configuration Files
-- **[config.py](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/utils/config.py)** - System configuration
-- **[continuity_config.py](https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/utils/continuity_config.py)** - Data continuity settings
-- **[requirements.txt](https://raw.githubusercontent.com/druidtom3/Trade_system/master/requirements.txt)** - Python dependencies
+- **config.py** - System configuration
+  https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/utils/config.py
+
+- **continuity_config.py** - Data continuity settings
+  https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/utils/continuity_config.py
+
+- **requirements.txt** - Python dependencies
+  https://raw.githubusercontent.com/druidtom3/Trade_system/master/requirements.txt
 
 ### 📚 Documentation
-- **[README.md](https://raw.githubusercontent.com/druidtom3/Trade_system/master/README.md)** - This file
-- **[SYSTEM_REQUIREMENTS.md](https://raw.githubusercontent.com/druidtom3/Trade_system/master/SYSTEM_REQUIREMENTS.md)** - Technical specifications
-- **[FVG_Implementation_Guide.md](https://raw.githubusercontent.com/druidtom3/Trade_system/master/misc/FVG_Implementation_Guide.md)** - FVG implementation details
+- **README.md** - This file
+  https://raw.githubusercontent.com/druidtom3/Trade_system/master/README.md
+
+- **SYSTEM_REQUIREMENTS.md** - Technical specifications
+  https://raw.githubusercontent.com/druidtom3/Trade_system/master/SYSTEM_REQUIREMENTS.md
+
+- **FVG_Implementation_Guide.md** - FVG implementation details
+  https://raw.githubusercontent.com/druidtom3/Trade_system/master/misc/FVG_Implementation_Guide.md
 
 ### 🎯 Key Features Added
 - **Drawing Tools**: Horizontal lines and rectangles with cross-timeframe persistence
