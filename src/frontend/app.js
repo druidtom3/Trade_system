@@ -65,21 +65,22 @@ async function initializeApp() {
         isInitialized = true;
         console.log('🚀 System initialized, loading initial data...');
         
-        // Load a valid M1 date for replay functionality first
-        console.log('🎲 Loading random M1 date for replay...');
-        const randomM1Date = await loadRandomM1Date();
-        
-        // Load data for the SAME date to ensure price continuity
-        console.log('📊 Fetching initial data for date:', randomM1Date, 'timeframe:', currentTimeframe);
+        // Load common random data that exists in all timeframes
+        console.log('🎲 Loading common random data for both chart and replay...');
         let initialData;
         try {
-            // Try to load data for the same date as M1
-            initialData = await dataManager.getCommonRandomData(currentTimeframe, randomM1Date);
-            console.log('✅ Successfully loaded data for same M1 date');
-        } catch (error) {
-            console.warn('⚠️ Could not load data for M1 date, trying common random data...');
+            // Get common random data (this returns data that exists across all timeframes)
             initialData = await dataManager.getCommonRandomData(currentTimeframe);
+            console.log('✅ Successfully loaded common random data');
+            
+            // Set the current date from the loaded data
+            currentDate = initialData.date;
+            console.log('📅 Using common date:', currentDate);
+        } catch (error) {
+            console.error('Failed to load common random data:', error);
+            throw new Error('Failed to load initial data');
         }
+        
         console.log('✅ Initial data fetched:', {
             date: initialData.date,
             candles: initialData.data?.length,
@@ -88,11 +89,6 @@ async function initializeApp() {
         
         // Update UI with initial data
         updateUI(initialData);
-        
-        // Use the M1 date if available, otherwise fall back to the data date
-        if (!currentDate) {
-            currentDate = initialData.date;
-        }
         
         // Ensure date selector is updated after DOM is ready
         updateDateSelectorFromCurrentDate();
@@ -146,24 +142,11 @@ function setupEventListeners() {
         updateDateSelectorFromCurrentDate();
     });
     document.getElementById('randomBtn').addEventListener('click', async () => {
-        // Load a random M1 date first for replay functionality
-        const randomM1Date = await loadRandomM1Date();
-        
-        // Load chart data for the SAME M1 date to ensure price continuity
-        try {
-            console.log('📊 Loading chart data for same M1 date:', randomM1Date);
-            await loadDataByDate(randomM1Date);
-            console.log('✅ Successfully loaded chart data for same M1 date');
-        } catch (error) {
-            console.warn('⚠️ Could not load chart data for M1 date, trying common random data...');
-            await loadRandomData();
-        }
-        
-        // Ensure the M1 date is preserved
-        currentDate = randomM1Date;
+        // Load common random data to ensure consistency between chart and replay
+        console.log('🎲 Random button clicked: loading common random data...');
+        await loadRandomData();
         updateDateSelectorFromCurrentDate();
-        
-        console.log('🎲 Random button clicked: M1 date set to', randomM1Date);
+        console.log('📅 Random date set to:', currentDate);
     });
     
     // Load Data button - explicit loading
@@ -645,12 +628,14 @@ function setupPlaybackEventListeners() {
                 // Need to prepare first - use current date from dateSelector
                 let selectedDate = document.getElementById('dateSelector').value;
                 if (!selectedDate) {
-                    // If no date selected, use current date from loaded data or load a random M1 date
+                    // If no date selected, use current date from loaded data
                     if (currentDate) {
                         selectedDate = currentDate;
                     } else {
-                        // Load random M1 date for replay
-                        selectedDate = await loadRandomM1Date();
+                        // This should never happen if initialization was successful
+                        console.error('No current date available');
+                        alert('Please load data first by clicking Random or selecting a date');
+                        return;
                     }
                     
                     // Update the date selector
