@@ -38,6 +38,13 @@ A web-based trading chart analysis system for MNQ (Micro E-mini Nasdaq-100) futu
 - **Real-time server status** page with loading progress
 - **Clean white background** without grid lines for optimal viewing
 
+### K-line Replay System (Week 2 Implementation)
+- **Multi-timeframe synchronous playback** with M1 as baseline timeframe
+- **Variable playback speeds** (0.5s, 1s, 2s, 3s, 5s, 10s per candle)
+- **Real-time streaming** using Server-Sent Events (SSE)
+- **Timeframe switching during replay** with data persistence
+- **Progress tracking and controls** (play, pause, stop, speed adjustment)
+
 ### Data Processing
 - **Time zone conversion** (UTC → EST/EDT → Taipei)
 - **US market holidays** detection and handling
@@ -161,6 +168,9 @@ Proprietary - All rights reserved
 - **candle_continuity_checker.py** - Data continuity validation
   https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/backend/candle_continuity_checker.py
 
+- **replay_server.py** - K-line replay server for multi-timeframe playback
+  https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/backend/replay_server.py
+
 ### 🌐 Frontend Files
 - **index.html** - Main application interface
   https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/index.html
@@ -173,6 +183,9 @@ Proprietary - All rights reserved
 
 - **data-manager.js** - Frontend data handling
   https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/data-manager.js
+
+- **playback-controls.js** - Replay playback control system
+  https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/playback-controls.js
 
 - **languages.js** - Multi-language support (EN/中文)
   https://raw.githubusercontent.com/druidtom3/Trade_system/master/src/frontend/languages.js
