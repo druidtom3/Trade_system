@@ -147,6 +147,17 @@ function setupEventListeners() {
         await loadRandomData();
         updateDateSelectorFromCurrentDate();
         console.log('📅 Random date set to:', currentDate);
+        
+        // Auto-prepare replay after loading random data
+        try {
+            const speed = parseFloat(document.getElementById('speedSelector').value) || 1.0;
+            console.log('🎬 Auto-preparing replay for random date:', currentDate);
+            await playbackControls.prepareReplay(currentDate, speed);
+            updatePlaybackUI();
+            console.log('✅ Replay prepared and ready to play');
+        } catch (error) {
+            console.error('Failed to auto-prepare replay:', error);
+        }
     });
     
     // Load Data button - explicit loading
@@ -605,11 +616,16 @@ function startPerformanceMonitoring() {
 // ============= UTILITY FUNCTIONS =============
 
 function updateDateSelectorFromCurrentDate() {
+    console.log('🔄 updateDateSelectorFromCurrentDate called with currentDate:', currentDate);
+    
     if (currentDate) {
         const dateSelector = document.getElementById('dateSelector');
+        console.log('📅 Date selector element found:', !!dateSelector);
+        
         if (dateSelector) {
+            console.log('📅 Setting date selector value from:', dateSelector.value, 'to:', currentDate);
             dateSelector.value = currentDate;
-            console.log('📅 Date selector updated to:', currentDate);
+            console.log('📅 Date selector updated successfully. New value:', dateSelector.value);
         } else {
             console.warn('⚠️ Date selector element not found');
         }
@@ -665,22 +681,7 @@ function setupPlaybackEventListeners() {
         }
     });
     
-    // Stop button
-    document.getElementById('stopBtn').addEventListener('click', async () => {
-        try {
-            await playbackControls.stopReplay();
-            updatePlaybackUI();
-            isReplayMode = false;
-            
-            // Switch back to M1 for normal view
-            if (currentTimeframe !== 'M1') {
-                await setTimeframe('M1');
-            }
-            
-        } catch (error) {
-            console.error('Failed to stop replay:', error);
-        }
-    });
+    // Note: Stop button removed - use pause instead
     
     // Speed selector
     document.getElementById('speedSelector').addEventListener('change', async (e) => {
@@ -710,7 +711,21 @@ function setupPlaybackEventListeners() {
 }
 
 function handleReplayCandle(candleData) {
-    if (!chartManager || !isReplayMode) return;
+    console.log('🎯 handleReplayCandle called:', { 
+        chartManager: !!chartManager, 
+        isReplayMode: isReplayMode, 
+        candleData: candleData 
+    });
+    
+    if (!chartManager) {
+        console.error('❌ chartManager is not available');
+        return;
+    }
+    
+    if (!isReplayMode) {
+        console.error('❌ not in replay mode');
+        return;
+    }
     
     try {
         // Create chart-compatible candle data
@@ -725,10 +740,16 @@ function handleReplayCandle(candleData) {
         
         // Append the new candle to the chart
         console.log('📊 Appending replay candle to chart:', chartCandle);
+        console.log('📊 Chart manager status:', {
+            hasChart: !!chartManager.chart,
+            hasCandlestickSeries: !!chartManager.candlestickSeries
+        });
+        
         chartManager.appendCandle(chartCandle);
         
     } catch (error) {
         console.error('Error handling replay candle:', error);
+        console.error('Error details:', error.stack);
     }
 }
 
@@ -875,23 +896,19 @@ function handleReplayStatusChange(status) {
 function updatePlaybackUI() {
     const playBtn = document.getElementById('playBtn');
     const pauseBtn = document.getElementById('pauseBtn');
-    const stopBtn = document.getElementById('stopBtn');
     const speedSelector = document.getElementById('speedSelector');
     
     if (playbackControls.isPlaying) {
         playBtn.style.display = 'none';
         pauseBtn.style.display = 'flex';
-        stopBtn.disabled = false;
         speedSelector.disabled = false;
     } else if (playbackControls.isPrepared) {
         playBtn.style.display = 'flex';
         pauseBtn.style.display = 'none';
-        stopBtn.disabled = false;
         speedSelector.disabled = false;
     } else {
         playBtn.style.display = 'flex';
         pauseBtn.style.display = 'none';
-        stopBtn.disabled = true;
         speedSelector.disabled = true;
     }
 }
