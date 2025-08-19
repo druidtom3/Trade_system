@@ -9,6 +9,8 @@ from pathlib import Path
 import logging
 import threading
 import time
+import numpy as np
+import pandas as pd
 
 sys.path.append(str(Path(__file__).parent.parent))
 
@@ -167,6 +169,157 @@ def get_random_data():
     
     return jsonify(data_processor._convert_to_json_serializable(response))
 
+@app.route('/api/common-random-date', methods=['GET'])
+def get_common_random_date():
+    """Get a random date that has data in all timeframes"""
+    try:
+        if not data_processor.loaded_data:
+            return jsonify({'error': 'Data not loaded yet'}), 503
+            
+        # Get a date that exists in all timeframes
+        common_date = data_processor.get_common_random_date()
+        
+        if not common_date:
+            return jsonify({'error': 'No common dates found across timeframes'}), 404
+            
+        return jsonify({
+            'date': common_date,
+            'message': f'Common date available across all timeframes: {common_date}'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting common random date: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/common-random-data', methods=['GET'])
+def get_common_random_data():
+    """Get data for random date that exists in all timeframes"""
+    timeframe = request.args.get('timeframe', 'M15')
+    date = request.args.get('date')  # Optional: use specific date
+    
+    try:
+        if not data_processor.loaded_data:
+            return jsonify({'error': 'Data not loaded yet'}), 503
+            
+        # If no date specified, get a random common date
+        if not date:
+            common_date = data_processor.get_common_random_date()
+            
+            if not common_date:
+                return jsonify({'error': 'No common dates found across timeframes'}), 404
+        else:
+            common_date = date
+            
+        # Get data for this date in the requested timeframe
+        df = data_processor.get_data_for_date(common_date, timeframe)
+        
+        if df is None or df.empty:
+            return jsonify({'error': f'No data available for {common_date} in {timeframe}'}), 404
+        
+        chart_data = data_processor.prepare_chart_data(df)
+        fvgs = fvg_detector.detect_fvgs_vectorized(df)
+        
+        market_hours = tz_converter.get_market_hours_taipei(common_date)
+        holiday_info = holiday_checker.get_holiday_info(common_date)
+        
+        response = {
+            'date': common_date,
+            'timeframe': timeframe,
+            'data': chart_data,
+            'fvgs': fvgs,
+            'candle_count': len(chart_data),
+            'ny_open_taipei': market_hours['open'],
+            'ny_close_taipei': market_hours['close'],
+            'is_dst': market_hours['is_dst'],
+            'holiday_info': holiday_info,
+            'is_common_date': True
+        }
+        
+        return jsonify(data_processor._convert_to_json_serializable(response))
+        
+    except Exception as e:
+        logger.error(f"Error getting common random data: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/m1-random-date', methods=['GET'])
+def get_m1_random_date():
+    """Get a random date that exists in M1 AND other timeframes to ensure data continuity"""
+    try:
+        if 'M1' not in data_processor.loaded_data:
+            return jsonify({'error': 'M1 data not loaded'}), 400
+            
+        # Use the common random date logic to ensure consistency across timeframes
+        common_date = data_processor.get_common_random_date()
+        
+        df = data_processor.loaded_data['M1']
+        
+        if not common_date:
+            # Fallback to M1-only dates if no common dates found
+            logger.warning("No common dates found, falling back to M1-only random date")
+            df['date'] = pd.to_datetime(df['timestamp'], unit='s').dt.date
+            unique_dates = df['date'].unique()
+            random_date = np.random.choice(unique_dates)
+            date_str = random_date.strftime('%Y-%m-%d')
+            selected_date = random_date
+        else:
+            date_str = common_date
+            # Convert string back to date for filtering
+            selected_date = pd.to_datetime(common_date).date()
+        
+        # Get basic info about this date
+        df['date'] = pd.to_datetime(df['timestamp'], unit='s').dt.date
+        date_data = df[df['date'] == selected_date]
+        candle_count = len(date_data)
+        
+        # Get min/max timestamps for this date
+        min_time = pd.to_datetime(date_data['timestamp'].min(), unit='s')
+        max_time = pd.to_datetime(date_data['timestamp'].max(), unit='s')
+        
+        return jsonify({
+            'date': date_str,
+            'candle_count': candle_count,
+            'start_time': min_time.strftime('%H:%M:%S'),
+            'end_time': max_time.strftime('%H:%M:%S'),
+            'message': f'Random M1 date with {candle_count} candles'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting M1 random date: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/m1-date-range', methods=['GET'])
+def get_m1_date_range():
+    """Get the available date range for M1 data"""
+    try:
+        if 'M1' not in data_processor.loaded_data:
+            return jsonify({'error': 'M1 data not loaded'}), 400
+            
+        df = data_processor.loaded_data['M1']
+        
+        # Get min and max dates
+        min_timestamp = df['timestamp'].min()
+        max_timestamp = df['timestamp'].max()
+        
+        min_date = pd.to_datetime(min_timestamp, unit='s').date()
+        max_date = pd.to_datetime(max_timestamp, unit='s').date()
+        
+        # Count unique dates
+        df['date'] = pd.to_datetime(df['timestamp'], unit='s').dt.date
+        unique_dates = df['date'].nunique()
+        total_candles = len(df)
+        
+        return jsonify({
+            'min_date': min_date.strftime('%Y-%m-%d'),
+            'max_date': max_date.strftime('%Y-%m-%d'),
+            'total_days': unique_dates,
+            'total_candles': total_candles,
+            'message': f'M1 data available from {min_date} to {max_date} ({unique_dates} days, {total_candles} candles)'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting M1 date range: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/data/<path:date>/<timeframe>', methods=['GET'])
 def get_data_by_date(date, timeframe):
     """Get data for specific date and timeframe"""
@@ -248,8 +401,8 @@ def start_replay():
         if not date:
             return jsonify({'error': 'Date is required'}), 400
             
-        if speed not in [1.0, 3.0, 5.0]:
-            return jsonify({'error': 'Speed must be 1, 3, or 5 seconds'}), 400
+        if speed not in [0.5, 1.0, 2.0, 3.0, 5.0, 10.0]:
+            return jsonify({'error': 'Speed must be 0.5, 1, 2, 3, 5, or 10 seconds per candle'}), 400
             
         result = replay_server.start_replay(date, speed)
         
@@ -299,8 +452,8 @@ def set_replay_speed():
         data = request.get_json()
         speed = float(data.get('speed', 1.0))
         
-        if speed not in [1.0, 3.0, 5.0]:
-            return jsonify({'error': 'Speed must be 1, 3, or 5 seconds'}), 400
+        if speed not in [0.5, 1.0, 2.0, 3.0, 5.0, 10.0]:
+            return jsonify({'error': 'Speed must be 0.5, 1, 2, 3, 5, or 10 seconds per candle'}), 400
             
         result = replay_server.set_speed(speed)
         return jsonify(result)

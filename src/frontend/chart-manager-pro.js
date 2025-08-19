@@ -1279,6 +1279,46 @@ class ChartManagerPro {
         }
     }
     
+    // Append a single candle for replay mode
+    appendCandle(candle) {
+        if (!this.candlestickSeries) {
+            console.error('❌ Chart not initialized - cannot append candle');
+            return;
+        }
+        
+        const chartCandle = {
+            time: candle.time,
+            open: candle.open,
+            high: candle.high,
+            low: candle.low,
+            close: candle.close
+        };
+        
+        console.log('📊 Appending candle:', chartCandle);
+        this.candlestickSeries.update(chartCandle);
+        
+        // Update volume if enabled
+        if (this.settings.showVolume && this.volumeSeries && candle.volume !== undefined) {
+            this.volumeSeries.update({
+                time: candle.time,
+                value: candle.volume,
+                color: candle.close >= candle.open ? 'rgba(0, 150, 136, 0.8)' : 'rgba(255, 82, 82, 0.8)'
+            });
+        }
+    }
+    
+    // Clear all data and start fresh for replay mode
+    clearForReplay() {
+        if (this.candlestickSeries) {
+            this.candlestickSeries.setData([]);
+        }
+        if (this.volumeSeries) {
+            this.volumeSeries.setData([]);
+        }
+        this.clearFVGRectangles();
+        console.log('🧹 Chart cleared for replay');
+    }
+    
     resetView() {
         if (this.chart) {
             this.chart.timeScale().resetTimeScale();

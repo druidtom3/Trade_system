@@ -14,6 +14,7 @@ class PlaybackControls {
         this.totalCandles = 0;
         this.onCandleReceived = null;  // Callback for new candle data
         this.onStatusChanged = null;   // Callback for status changes
+        this.onMultiTimeframeCandleReceived = null;  // Callback for multi-timeframe candle data
         
         this.setupUI();
         this.bindEvents();
@@ -269,6 +270,7 @@ class PlaybackControls {
     handleStreamData(data) {
         switch (data.type) {
             case 'candle':
+                // Handle single timeframe candle (backward compatibility)
                 this.currentIndex = data.index;
                 
                 // Call the candle callback if set
@@ -287,8 +289,46 @@ class PlaybackControls {
                 }
                 break;
                 
+            case 'multi_timeframe_candle':
+                // Handle multi-timeframe synchronized candles
+                this.currentIndex = data.index;
+                
+                console.log(`📊 Multi-TF update: ${Object.keys(data.timeframes).join(', ')} @ ${new Date(data.timestamp * 1000).toLocaleTimeString()}`);
+                
+                // Call the multi-timeframe candle callback if set
+                if (this.onMultiTimeframeCandleReceived) {
+                    this.onMultiTimeframeCandleReceived(data);
+                }
+                
+                // Also call individual candle callbacks for each timeframe
+                if (this.onCandleReceived && data.timeframes) {
+                    for (const [timeframe, candleData] of Object.entries(data.timeframes)) {
+                        // Add timeframe information to candle data
+                        const enhancedCandle = {
+                            ...candleData,
+                            type: 'candle',
+                            multi_timeframe_source: true,
+                            all_timeframes: data.timeframes
+                        };
+                        this.onCandleReceived(enhancedCandle);
+                    }
+                }
+                
+                // Update progress
+                if (this.onStatusChanged) {
+                    this.onStatusChanged({
+                        type: 'progress',
+                        currentIndex: this.currentIndex,
+                        totalCandles: this.totalCandles,
+                        progress: data.progress || 0,
+                        multi_timeframe_data: data.timeframes,
+                        loaded_timeframes: data.loaded_timeframes
+                    });
+                }
+                break;
+                
             case 'finished':
-                console.log('🏁 Replay finished');
+                console.log('🏁 Multi-timeframe replay finished');
                 this.isPlaying = false;
                 
                 if (this.onStatusChanged) {

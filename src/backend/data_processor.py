@@ -146,12 +146,16 @@ class DataProcessor:
         if isinstance(target_date, str):
             target_date = pd.to_datetime(target_date).date()
             
+        # Restore original logic but ensure data comes from the correct date range
         # Use vectorized filtering for better performance
         target_datetime = pd.to_datetime(target_date)
-        ny_open = target_datetime.replace(hour=14, minute=30)
+        
+        # Define a reasonable cutoff time (end of trading day in UTC)
+        # This ensures we get data from the trading session but avoid cross-date contamination
+        cutoff_time = target_datetime.replace(hour=22, minute=0)  # 22:00 UTC = approx market close
         
         # Use boolean indexing directly without intermediate filtering
-        mask = df['DateTime'] <= ny_open
+        mask = df['DateTime'] <= cutoff_time
         filtered_indices = df.index[mask]
         
         if len(filtered_indices) == 0:
@@ -162,6 +166,13 @@ class DataProcessor:
         selected_indices = filtered_indices[start_idx:]
         
         result_df = df.iloc[selected_indices].copy()  # Only copy the final result
+        
+        # Debug logging to check data continuity
+        if len(result_df) > 1:
+            first_time = result_df.iloc[0]['DateTime']
+            last_time = result_df.iloc[-1]['DateTime']
+            logger.info(f"Loaded {len(result_df)} candles for {target_date} in {timeframe}: {first_time} to {last_time}")
+        
         return result_df.reset_index(drop=True)
     
     def get_random_date_data(self, timeframe='M15'):
@@ -187,6 +198,52 @@ class DataProcessor:
         random_date = np.random.choice(valid_dates)
         
         return self.get_data_for_date(random_date, timeframe)
+        
+    def get_common_random_date(self):
+        """Get a random date that has data available in ALL timeframes"""
+        all_dates = set()
+        
+        # Get dates from each timeframe that have sufficient data
+        timeframe_dates = {}
+        min_candles = {
+            'M1': 20, 'M5': 15, 'M15': 10, 
+            'H1': 5, 'H4': 3, 'D1': 1
+        }
+        
+        for timeframe in ['M1', 'M5', 'M15', 'H1', 'H4', 'D1']:
+            if timeframe not in self.loaded_data:
+                continue
+                
+            df = self.loaded_data[timeframe]
+            date_counts = df['Date'].value_counts()
+            min_count = min_candles.get(timeframe, 5)
+            valid_dates = date_counts[date_counts >= min_count].index.tolist()
+            
+            timeframe_dates[timeframe] = set(valid_dates)
+            
+            if not all_dates:
+                all_dates = set(valid_dates)
+            else:
+                all_dates = all_dates.intersection(set(valid_dates))
+        
+        if not all_dates:
+            # Fallback: if no common dates, use M1 dates as priority
+            logger.warning("No common dates found across all timeframes, using M1 dates as fallback")
+            if 'M1' in timeframe_dates:
+                all_dates = timeframe_dates['M1']
+            else:
+                return None
+                
+        # Convert to list and select random date
+        common_dates = list(all_dates)
+        if not common_dates:
+            return None
+            
+        random_date = np.random.choice(common_dates)
+        
+        logger.info(f"Selected common random date: {random_date} (available in {len([tf for tf, dates in timeframe_dates.items() if random_date in dates])} timeframes)")
+        
+        return random_date
     
     def prepare_chart_data(self, df):
         """Prepare data for chart display - vectorized version"""

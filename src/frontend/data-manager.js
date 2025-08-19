@@ -93,6 +93,35 @@ class DataManager {
         }
     }
     
+    async getCommonRandomData(timeframe = 'M15', specificDate = null) {
+        try {
+            const cacheKey = `common_random_${timeframe}_${specificDate || Date.now()}`;
+            
+            let url = `${this.baseUrl}/api/common-random-data?timeframe=${timeframe}`;
+            if (specificDate) {
+                url += `&date=${specificDate}`;
+            }
+            
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            this.currentData = data.data;
+            this.currentFVGs = data.fvgs;
+            
+            console.log(`📊 Loaded common date data: ${data.date} (${timeframe}) - ${data.candle_count} candles`);
+            
+            return data;
+        } catch (error) {
+            console.error('Failed to get random data:', error);
+            throw error;
+        }
+    }
+    
     async getDataByDate(date, timeframe = 'M15') {
         try {
             const cacheKey = `${date}_${timeframe}`;

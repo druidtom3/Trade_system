@@ -14,7 +14,18 @@ let isReplayMode = false;
 // Global storage for drawings that persist across timeframes
 window.globalDrawings = {
     horizontalLines: [],  // Array of {price: number, color: string, width: number, id: string}
-    rectangles: []        // Array of {id: string, time1: number, price1: number, time2: number, price2: number, color: string, fillColor: string}
+    rectangles: []        // Array of {id: string, time1: number, time2: number, price1: number, price2: number, color: string, fillColor: string}
+};
+
+// Global storage for replay multi-timeframe data
+window.replayTimeframeData = {
+    // Structure: { M1: [candles], M5: [candles], M15: [candles], H1: [candles], H4: [candles], D1: [candles] }
+    M1: [],
+    M5: [],
+    M15: [],
+    H1: [],
+    H4: [],
+    D1: []
 };
 
 // Application initialization
@@ -54,9 +65,21 @@ async function initializeApp() {
         isInitialized = true;
         console.log('🚀 System initialized, loading initial data...');
         
-        // Load data but don't update chart yet (chart not initialized)
-        console.log('📊 Fetching initial data for timeframe:', currentTimeframe);
-        const initialData = await dataManager.getRandomData(currentTimeframe);
+        // Load a valid M1 date for replay functionality first
+        console.log('🎲 Loading random M1 date for replay...');
+        const randomM1Date = await loadRandomM1Date();
+        
+        // Load data for the SAME date to ensure price continuity
+        console.log('📊 Fetching initial data for date:', randomM1Date, 'timeframe:', currentTimeframe);
+        let initialData;
+        try {
+            // Try to load data for the same date as M1
+            initialData = await dataManager.getCommonRandomData(currentTimeframe, randomM1Date);
+            console.log('✅ Successfully loaded data for same M1 date');
+        } catch (error) {
+            console.warn('⚠️ Could not load data for M1 date, trying common random data...');
+            initialData = await dataManager.getCommonRandomData(currentTimeframe);
+        }
         console.log('✅ Initial data fetched:', {
             date: initialData.date,
             candles: initialData.data?.length,
@@ -65,8 +88,14 @@ async function initializeApp() {
         
         // Update UI with initial data
         updateUI(initialData);
-        currentDate = initialData.date;
-        document.getElementById('dateSelector').value = initialData.date;
+        
+        // Use the M1 date if available, otherwise fall back to the data date
+        if (!currentDate) {
+            currentDate = initialData.date;
+        }
+        
+        // Ensure date selector is updated after DOM is ready
+        updateDateSelectorFromCurrentDate();
         
         // Initialize chart AFTER loading overlay is hidden
         showLoading(false);
@@ -117,8 +146,24 @@ function setupEventListeners() {
         updateDateSelectorFromCurrentDate();
     });
     document.getElementById('randomBtn').addEventListener('click', async () => {
-        await loadRandomData();
+        // Load a random M1 date first for replay functionality
+        const randomM1Date = await loadRandomM1Date();
+        
+        // Load chart data for the SAME M1 date to ensure price continuity
+        try {
+            console.log('📊 Loading chart data for same M1 date:', randomM1Date);
+            await loadDataByDate(randomM1Date);
+            console.log('✅ Successfully loaded chart data for same M1 date');
+        } catch (error) {
+            console.warn('⚠️ Could not load chart data for M1 date, trying common random data...');
+            await loadRandomData();
+        }
+        
+        // Ensure the M1 date is preserved
+        currentDate = randomM1Date;
         updateDateSelectorFromCurrentDate();
+        
+        console.log('🎲 Random button clicked: M1 date set to', randomM1Date);
     });
     
     // Load Data button - explicit loading
@@ -252,6 +297,7 @@ function setupKeyboardShortcuts() {
 }
 
 async function setTimeframe(timeframe) {
+    const previousTimeframe = currentTimeframe;
     currentTimeframe = timeframe;
     
     document.querySelectorAll('.tf-btn').forEach(btn => {
@@ -259,15 +305,65 @@ async function setTimeframe(timeframe) {
     });
     document.querySelector(`[data-tf="${timeframe}"]`)?.classList.add('active');
     
-    if (currentDate) {
-        try {
-            await loadDataByDate(currentDate);
-        } catch (error) {
-            console.log(`No data for ${currentDate} in ${timeframe}, loading random data instead`);
-            await loadRandomData();
+    // If in replay mode, handle timeframe switching differently
+    if (isReplayMode) {
+        console.log(`📊 Switching timeframe from ${previousTimeframe} to ${timeframe} during replay`);
+        
+        // If we have replay data for this timeframe, switch to it
+        if (window.replayTimeframeData[timeframe] && window.replayTimeframeData[timeframe].length > 0) {
+            console.log(`🔄 Loading ${window.replayTimeframeData[timeframe].length} cached ${timeframe} candles`);
+            
+            // Load the base data first (without replay data)
+            try {
+                const baseData = await dataManager.getDataByDate(currentDate, timeframe);
+                updateUI(baseData);
+                
+                // Set the base chart data, then append all replay candles
+                chartManager.updateData(baseData.data, baseData.fvgs);
+                
+                // Append all the replay candles for this timeframe
+                window.replayTimeframeData[timeframe].forEach(candle => {
+                    chartManager.appendCandle(candle);
+                });
+                
+                console.log(`✅ Switched to ${timeframe} with ${window.replayTimeframeData[timeframe].length} replay candles`);
+            } catch (error) {
+                console.warn(`Could not load base data for ${timeframe}, showing replay data only`);
+                // If no base data, just show the replay candles
+                chartManager.updateData(window.replayTimeframeData[timeframe], []);
+            }
+        } else {
+            console.log(`⚠️ No cached replay data for ${timeframe}, loading base data only`);
+            // No replay data for this timeframe yet, load base data
+            try {
+                await loadDataByDate(currentDate);
+            } catch (error) {
+                console.log(`No data for ${currentDate} in ${timeframe}, loading random data instead`);
+                await loadRandomData();
+            }
         }
     } else {
-        await loadRandomData();
+        // Normal mode - load data as before
+        if (currentDate) {
+            try {
+                // Try to load specific date first
+                await loadDataByDate(currentDate);
+            } catch (error) {
+                console.log(`No data for ${currentDate} in ${timeframe}, trying common date data instead`);
+                try {
+                    // Try to get data for the same date using common data API
+                    const data = await dataManager.getCommonRandomData(timeframe, currentDate);
+                    updateUI(data);
+                    chartManager.updateData(data.data, data.fvgs);
+                    console.log(`✅ Loaded common date data for ${currentDate} in ${timeframe}`);
+                } catch (commonError) {
+                    console.log(`No common data for ${currentDate} in ${timeframe}, loading random data instead`);
+                    await loadRandomData();
+                }
+            }
+        } else {
+            await loadRandomData();
+        }
     }
 }
 
@@ -278,12 +374,14 @@ async function loadRandomData() {
         updateSystemStatus('Loading random data...');
         showLoading(true, 'Loading market data...');
         
-        console.log('📊 Fetching random data for timeframe:', currentTimeframe);
-        const data = await dataManager.getRandomData(currentTimeframe);
-        console.log('✅ Data fetched:', {
+        console.log('📊 Fetching common random data for timeframe:', currentTimeframe);
+        // Use common random data to ensure consistency across timeframes
+        const data = await dataManager.getCommonRandomData(currentTimeframe);
+        console.log('✅ Common data fetched:', {
             date: data.date,
             candles: data.data?.length,
-            fvgs: data.fvgs?.length
+            fvgs: data.fvgs?.length,
+            isCommon: data.is_common_date
         });
         
         console.log('🔄 Updating UI');
@@ -297,16 +395,37 @@ async function loadRandomData() {
         // }
         
         currentDate = data.date;
-        document.getElementById('dateSelector').value = data.date;
+        updateDateSelectorFromCurrentDate();
         
         showLoading(false);
         updateSystemStatus('Ready');
         
     } catch (error) {
-        console.error('Failed to load random data:', error);
-        alert('Failed to load data: ' + error.message);
-        showLoading(false);
-        updateSystemStatus('Error');
+        console.error('Failed to load common random data:', error);
+        console.log('🔄 Falling back to regular random data...');
+        
+        // Fallback to regular random data if common data fails
+        try {
+            const data = await dataManager.getRandomData(currentTimeframe);
+            console.log('✅ Fallback data fetched:', {
+                date: data.date,
+                candles: data.data?.length,
+                fvgs: data.fvgs?.length
+            });
+            
+            updateUI(data);
+            chartManager.updateData(data.data, data.fvgs);
+            currentDate = data.date;
+            updateDateSelectorFromCurrentDate();
+            
+            showLoading(false);
+            updateSystemStatus('Ready (Fallback)');
+        } catch (fallbackError) {
+            console.error('Fallback also failed:', fallbackError);
+            alert('Failed to load data: ' + fallbackError.message);
+            showLoading(false);
+            updateSystemStatus('Error');
+        }
     }
 }
 
@@ -328,7 +447,7 @@ async function loadDataByDate(date) {
         // }
         
         currentDate = date;
-        document.getElementById('dateSelector').value = date;
+        updateDateSelectorFromCurrentDate();
         
         showLoading(false);
         updateSystemStatus('Ready');
@@ -504,7 +623,15 @@ function startPerformanceMonitoring() {
 
 function updateDateSelectorFromCurrentDate() {
     if (currentDate) {
-        document.getElementById('dateSelector').value = currentDate;
+        const dateSelector = document.getElementById('dateSelector');
+        if (dateSelector) {
+            dateSelector.value = currentDate;
+            console.log('📅 Date selector updated to:', currentDate);
+        } else {
+            console.warn('⚠️ Date selector element not found');
+        }
+    } else {
+        console.warn('⚠️ No current date to update selector with');
     }
 }
 
@@ -518,13 +645,12 @@ function setupPlaybackEventListeners() {
                 // Need to prepare first - use current date from dateSelector
                 let selectedDate = document.getElementById('dateSelector').value;
                 if (!selectedDate) {
-                    // If no date selected, use current date from loaded data or a random date
+                    // If no date selected, use current date from loaded data or load a random M1 date
                     if (currentDate) {
                         selectedDate = currentDate;
                     } else {
-                        // Load random data to get a date
-                        await loadRandomData();
-                        selectedDate = currentDate;
+                        // Load random M1 date for replay
+                        selectedDate = await loadRandomM1Date();
                     }
                     
                     // Update the date selector
@@ -588,6 +714,11 @@ function setupPlaybackEventListeners() {
         handleReplayCandle(candleData);
     };
     
+    // Setup multi-timeframe callback for Week 2 functionality
+    playbackControls.onMultiTimeframeCandleReceived = (multiTFData) => {
+        handleMultiTimeframeCandle(multiTFData);
+    };
+    
     playbackControls.onStatusChanged = (status) => {
         handleReplayStatusChange(status);
     };
@@ -607,17 +738,82 @@ function handleReplayCandle(candleData) {
             volume: candleData.volume
         };
         
-        // Update the chart with new candle (for M1 only in Week 1)
-        // In future weeks, we'll add multi-timeframe sync
-        if (currentTimeframe === 'M1') {
-            // For now, we'll replace the entire chart data
-            // In a real implementation, we'd append to existing data
-            console.log('📊 Updating chart with replay candle:', chartCandle);
-            // TODO: Implement incremental candle update
-        }
+        // Append the new candle to the chart
+        console.log('📊 Appending replay candle to chart:', chartCandle);
+        chartManager.appendCandle(chartCandle);
         
     } catch (error) {
         console.error('Error handling replay candle:', error);
+    }
+}
+
+function handleMultiTimeframeCandle(multiTFData) {
+    if (!chartManager || !isReplayMode) return;
+    
+    try {
+        console.log(`📊 Multi-TF candle received: ${Object.keys(multiTFData.timeframes).length} timeframes`);
+        
+        // Store multi-timeframe data for potential future use
+        window.lastMultiTFData = multiTFData;
+        
+        // Store candle data for ALL timeframes for later timeframe switching
+        for (const [tf, candleData] of Object.entries(multiTFData.timeframes)) {
+            if (candleData && window.replayTimeframeData[tf]) {
+                const chartCandle = {
+                    time: candleData.time,
+                    open: candleData.open,
+                    high: candleData.high,
+                    low: candleData.low,
+                    close: candleData.close,
+                    volume: candleData.volume
+                };
+                
+                // Store the candle for this timeframe
+                window.replayTimeframeData[tf].push(chartCandle);
+                
+                console.log(`💾 Stored ${tf} candle (total: ${window.replayTimeframeData[tf].length})`);
+            }
+        }
+        
+        // Get the candle data for the current displayed timeframe
+        const currentTFData = multiTFData.timeframes[currentTimeframe];
+        
+        if (currentTFData) {
+            // Create chart-compatible candle data for current timeframe
+            const chartCandle = {
+                time: currentTFData.time,
+                open: currentTFData.open,
+                high: currentTFData.high,
+                low: currentTFData.low,
+                close: currentTFData.close,
+                volume: currentTFData.volume
+            };
+            
+            console.log(`📈 Appending ${currentTimeframe} candle to chart:`, chartCandle);
+            
+            // Append the candle for the current timeframe
+            chartManager.appendCandle(chartCandle);
+            
+            // Show debug info in console for development
+            console.log(`🔄 TF sync @ ${new Date(multiTFData.timestamp * 1000).toLocaleTimeString()}:`);
+            for (const [tf, data] of Object.entries(multiTFData.timeframes)) {
+                const price = data.close.toFixed(2);
+                const timeStr = new Date(data.time * 1000).toLocaleTimeString();
+                const stored = window.replayTimeframeData[tf] ? window.replayTimeframeData[tf].length : 0;
+                console.log(`  ${tf}: ${price} (${timeStr}) [${stored} stored]`);
+            }
+        } else {
+            console.warn(`⚠️ No data available for current timeframe ${currentTimeframe} in multi-TF update`);
+        }
+        
+        // Emit custom event for other components that might need multi-TF data
+        const event = new CustomEvent('multiTimeframeUpdate', {
+            detail: multiTFData
+        });
+        document.dispatchEvent(event);
+        
+    } catch (error) {
+        console.error('Error handling multi-timeframe candle:', error);
     }
 }
 
@@ -627,10 +823,17 @@ function handleReplayStatusChange(status) {
     switch (status.type) {
         case 'prepared':
             isReplayMode = true;
-            // Switch to M1 timeframe for replay
-            if (currentTimeframe !== 'M1') {
-                setTimeframe('M1');
-            }
+            // Initialize replay timeframe data storage
+            window.replayTimeframeData = {
+                M1: [],
+                M5: [],
+                M15: [],
+                H1: [],
+                H4: [],
+                D1: []
+            };
+            console.log('🗄️ Initialized replay timeframe data storage');
+            // Don't clear chart - keep existing K-lines visible during replay
             updatePlaybackUI();
             break;
             
@@ -644,11 +847,31 @@ function handleReplayStatusChange(status) {
             
         case 'stopped':
             isReplayMode = false;
+            // Clear replay timeframe data storage
+            window.replayTimeframeData = {
+                M1: [],
+                M5: [],
+                M15: [],
+                H1: [],
+                H4: [],
+                D1: []
+            };
+            console.log('🗑️ Cleared replay timeframe data storage');
             updatePlaybackUI();
             break;
             
         case 'finished':
             isReplayMode = false;
+            // Clear replay timeframe data storage
+            window.replayTimeframeData = {
+                M1: [],
+                M5: [],
+                M15: [],
+                H1: [],
+                H4: [],
+                D1: []
+            };
+            console.log('🗑️ Cleared replay timeframe data storage');
             updatePlaybackUI();
             alert('Replay finished!');
             break;
@@ -698,6 +921,46 @@ function updateReplayProgress(currentIndex, totalCandles, progressPercent) {
     
     if (progressBar) {
         progressBar.style.width = `${progressPercent || 0}%`;
+    }
+}
+
+// Function to get a random M1 date for replay
+async function getRandomM1Date() {
+    try {
+        const response = await fetch('/api/m1-random-date');
+        if (!response.ok) {
+            throw new Error(`Failed to get random M1 date: ${response.statusText}`);
+        }
+        const data = await response.json();
+        console.log('🎲 Random M1 date:', data.date, `(${data.candle_count} candles)`);
+        return data.date;
+    } catch (error) {
+        console.error('Failed to get random M1 date:', error);
+        // Fallback to a known working date
+        return '2024-01-15';
+    }
+}
+
+// Function to load a valid random date for replay functionality
+async function loadRandomM1Date() {
+    try {
+        const randomDate = await getRandomM1Date();
+        
+        // Update currentDate
+        currentDate = randomDate;
+        
+        // Update date selector
+        updateDateSelectorFromCurrentDate();
+        
+        console.log(`📅 Loaded random M1 date: ${randomDate}`);
+        
+        return randomDate;
+    } catch (error) {
+        console.error('Failed to load random M1 date:', error);
+        // Fallback
+        currentDate = '2024-01-15';
+        updateDateSelectorFromCurrentDate();
+        return currentDate;
     }
 }
 
