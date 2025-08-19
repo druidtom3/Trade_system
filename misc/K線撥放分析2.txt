@@ -1,0 +1,48 @@
+讀完你剛上傳的《K線撥放分析1-回應.md》後，我確認你已把 scrollToRealTime() 補進 appendCandle()，並驗證了 dateSelector 其實存在——這兩點對症且有效。以下依你報告中「仍然存在」的兩個間歇性現象，再往下收斂排查路徑。
+
+1️⃣ 偶發「K 線不顯示」──可見性 vs. 資料流
+方向	為何值得做	具體做法
+A. 逐筆 console 標記	先確認 到底有沒有收到 bar。若 SSE 流量正常但 update() 之後畫面仍空，就是圖表層面；反之是串流／排程。	在 handleReplayCandle() 頭尾 console.debug('[M1] got', bar.time)，同時在 appendCandle() 用 `console.debug('update ok', bar.time)；若缺一就表示事件掉了或 try/catch 吞了錯。
+B. 動態尺寸監控	有時瀏覽器在背景分頁時把 canvas 置零、回前景才復原，LWC 會「開在 0×0」。	在 ChartManagerPro.init() 補一段 ResizeObserver，尺寸變動即強制 chart.timeScale().fitContent()。
+C. scrollToRealTime() 時機	若一次 push 成百根，需要先 setData([]) → update()，完畢再 scroll；否則 LWC 會在每筆都嘗試 scroll，偶發 race condition。	累積 n 筆（如 100）再 batch 更新；或在 requestAnimationFrame 內批次更新後再 scroll。
+2️⃣ 偶發「價格跳到遙遠位置」──時間戳或極值
+方向	檢查點	具體做法
+A. 異常時間戳	單根 candle.time 飛到 1970 或 2100，圖表必縮放到底。	在 SSE server 端 (replay_server.py) 增加 assert start_of_2020 < bar.time < end_of_2030；違反時記 log 並丟棄。
+B. 界內但極端價	假如某根高點＝0 或 10⁹，視覺上也會瞬跳。	同樣在 server 端加 if abs(bar.close/prev.close) > 5: log & skip。
+C. CSV 邊界 / 半筆資料	若讀檔時最後一行只有 Open 沒 High/Low/Close，就會生成高低價皆零。	在 data_processor.py 對單列 isna().any() 直接剔除，或補內插。
+D. 交易時段斷層	FOMC 前後停盤 → 下一筆跳 1000pt；你下載的是 tick，但回放節流只抓秒線，可能漏夜間 gap。	在預處理時檢查 timestamp 間隔大於 N 秒即以前一筆 Close 造假 fill，或乾脆標記為「缺口」供前端特別渲染。
+3️⃣ 建議的「一次搞清楚」腳本
+# 假設你在 backend 目錄
+python - <<'PY'
+from replay_server import load_csv  # 依實際函式調整
+import pandas as pd, numpy as np
+
+df = load_csv('20250818_M1.csv')
+# 1. 時間戳合理性
+bad_ts = df[~df['timestamp'].between(1577836800, 1767225599)]
+# 2. 價格極值
+q = df[['open','high','low','close']].quantile([0.0005,0.9995])
+bad_px = df[(df['close']<q.loc[0.0005,'close']) | (df['close']>q.loc[0.9995,'close'])]
+print('bad_ts', len(bad_ts), 'bad_px', len(bad_px))
+PY
+
+
+若 bad_ts / bad_px 皆為 0，但前端仍跳價，就回到 可見性問題；否則是 資料問題。
+
+4️⃣ 前端快速 Debug Checklist
+
+ Network > EventStream 確保 SSE 持續，不時斷。
+
+ Performance timeline 觀察 appendCandle → scrollToRealTime 調用次序。
+
+ 停用任何自動翻譯或 CSS dark-mode hack，它們偶爾把 input[type=date] 隱藏。
+
+下一步
+
+先用 A-log+B-ResizeObserver 把「看不到」與「沒送到」區分清楚。
+
+跑一次腳本驗證資料；若無異常，專注前端排程與可見性。
+
+如確認仍有 race condition，可考慮把 replay 流改用「批次 JSON + setTimeout」而非 SSE，先把畫面穩住再升級。
+
+只要能在 log 裡抓到「哪一根」導致跳價，剩下就屬細節修補了。加油，離完全穩定只差最後幾步！

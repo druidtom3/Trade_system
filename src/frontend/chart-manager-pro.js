@@ -1286,6 +1286,33 @@ class ChartManagerPro {
             return;
         }
         
+        // Validate timestamp (critical for preventing price jumps)
+        if (!candle.time || typeof candle.time !== 'number') {
+            console.error('❌ Invalid timestamp in candle:', candle);
+            return;
+        }
+        
+        // Check for reasonable timestamp range (not too far in past/future)
+        const now = Date.now() / 1000;
+        const minTime = now - (10 * 365 * 24 * 60 * 60); // 10 years ago
+        const maxTime = now + (365 * 24 * 60 * 60); // 1 year in future
+        
+        if (candle.time < minTime || candle.time > maxTime) {
+            console.error('❌ Timestamp out of reasonable range:', {
+                timestamp: candle.time,
+                date: new Date(candle.time * 1000).toISOString(),
+                candle: candle
+            });
+            return;
+        }
+        
+        // Validate price data
+        if (typeof candle.open !== 'number' || typeof candle.high !== 'number' || 
+            typeof candle.low !== 'number' || typeof candle.close !== 'number') {
+            console.error('❌ Invalid price data in candle:', candle);
+            return;
+        }
+        
         const chartCandle = {
             time: candle.time,
             open: candle.open,
@@ -1294,7 +1321,7 @@ class ChartManagerPro {
             close: candle.close
         };
         
-        console.log('📊 Appending candle:', chartCandle);
+        console.log('📊 Appending validated candle:', chartCandle);
         this.candlestickSeries.update(chartCandle);
         
         // Scroll to show the new candle (critical for replay visibility)
