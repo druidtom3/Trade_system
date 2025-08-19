@@ -1,0 +1,62 @@
+播放後價格跳很遠／K 線消失
+可能性	等級	為什麼會導致現象	佐證／檔案位置
+A. ChartManagerPro 完全沒有 appendCandle()	High	播放時 handleReplayCandle() 會呼叫 chartManager.appendCandle(candle)；函式不存在 → 進入 try…catch 被吞掉，只剩 console warning，圖上其實沒有新增任何 bar，接著 timeScale.fitContent() 重新把畫面拉到最後一根歷史 K 線，看起來像「價格瞬間跳躍」或「空白」。	呼叫點：app.js → handleReplayCandle() 
+GitHub
+ 
+缺少實作：整份 chart-manager-pro.js 中完全找不到 appendCandle 
+GitHub
+
+B. chart 容器初始寬／高為 0	Medium	ChartManagerPro.init() 有偵測 0×0 並列警告；若第一次顯示時容器被 CSS 隱藏或尚未 flex-layout 完成，Lightweight-Charts 會在 0×0 基礎建圖，之後 append bar 時座標全跑掉。	0 × 0 檢查與警告位置：chart-manager-pro.js 
+GitHub
+
+C. UNIX 時間單位不一致	Medium	Chart 要的是「秒」；若日後你改成毫秒 (*1000) 而後端仍傳秒，就會出現一根極遠未來或極久以前的 bar，把縮放拉爆。但目前 DataProcessor 明確以秒為單位寫入 timestamp，暫無矛盾。	data_processor.py 設定 df['timestamp'] = … // 10**9 
+GitHub
+
+D. 多週期回放資料與目前顯示週期不匹配	Medium	回放時一次推多週期 Candle，但 chart 只 append 其中一條；若你先用 M15 載入，又在「播放」時切到 M1，M1 班次資料可能還沒 append，易造成「跳空」。	_get_synchronized_candles() 同步邏輯：replay_server.py 
+GitHub
+
+快速修法建議
+
+在 chart-manager-pro.js 補上一支簡單的 appendCandle(bar)：
+
+appendCandle(bar) {
+    if (!this.candlestickSeries) return;
+    this.candlestickSeries.update(bar);
+    this.chart.timeScale().scrollToRealTime();
+}
+
+
+確認播放時收到的 candle 真的有被 push（可在 handleReplayCandle 把無法 update 的錯誤 console.error 打開）。
+
+❷ 頁面上方「日期選擇 / 尖日期」始終空白
+可能性	等級	為什麼會導致現象	佐證／檔案位置
+E. HTML 裡根本沒有 id="dateSelector"	High	updateDateSelectorFromCurrentDate() 每次載完資料或按 Random 都會 document.getElementById('dateSelector') …；若元素不存在就只會留下 ⚠️ Date selector element not found console 警告，畫面上當然空白。搜尋 index.html 沒有該 id。	搜尋結果顯示無 dateSelector 
+GitHub
+
+F. 有 input 但被 CSS 隱藏	Medium	如果你把日期輸入框包在 collapsed section 或 display:none 的 container 裡，JS 雖更新了 value，使用者仍看不到。	
+G. currentDate 尚未設定成功	Medium	Random ➜ loadRandomData() 會把 data.date 存進 currentDate；若 dataManager.getCommonRandomData() 回來的 JSON 裡沒有 date，就不會更新。	
+
+快速修法建議
+
+在 index.html 的導航區塊補上一行：
+
+<input type="date" id="dateSelector" />
+
+
+或者把現有日期顯示元件的 id 改成 dateSelector，跟 JS 對齊。
+
+確認 updateDateSelectorFromCurrentDate() 執行時 console 應該看到「Date selector element found: true」。
+
+其他值得一起檢查的小細節
+
+chart.timeScale().fitContent() 與 scrollToRealTime() 時機
+
+若回放過程中新增 K 線很多，最好在 appendCandle() 裡決定何時自動捲動，以免「住在過去」。
+
+伺服器 SSE 連線中斷
+
+僅憑網頁 console 看不到，但若網路閃斷，回放就停止更新。可在 ReplayServer.candle_stream_generator() 加 keep-alive 心跳。
+
+CSV 資料「smart truncation」
+
+若開啟 CONTINUITY_CONFIG['smart_truncation'] 而且 nrows 太小，可能撈不到當天收盤價，造成最後一根價差極大。

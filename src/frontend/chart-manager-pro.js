@@ -1297,6 +1297,9 @@ class ChartManagerPro {
         console.log('📊 Appending candle:', chartCandle);
         this.candlestickSeries.update(chartCandle);
         
+        // Scroll to show the new candle (critical for replay visibility)
+        this.chart.timeScale().scrollToRealTime();
+        
         // Update volume if enabled
         if (this.settings.showVolume && this.volumeSeries && candle.volume !== undefined) {
             this.volumeSeries.update({
